@@ -1,7 +1,13 @@
-<h2>Task List</h2>
-<ul>
-    {% for task in tasks %}
-        <li>{{ task.title }} - {{ task.status }} - Assigned to: {{ task.assigned_to.username }}</li>
-    {% endfor %}
-</ul>
-<a href="{% url 'createtask' %}">Create New Task</a>
+{% if user.is_authenticated %}
+    <h2>Your Task List</h2>
+    <ul>
+        {% for task in tasks %}
+            <li>{{ task.title }} - {{ task.status }}</li>
+        {% empty %}
+            <li>No tasks assigned to you.</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>You must <a href="{% url 'login' %}">log in</a> to view tasks.</p>
+{% endif %}    
+    <a href="{% url 'createtask' %}">Create New Task</a>
