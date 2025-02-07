@@ -8,11 +8,7 @@ User = get_user_model()
 
 @login_required
 def task_list(request):
-    if request.user.role == "manager":
-        tasks = Task.objects.all()  # Managers see all tasks
-    else:
-        tasks = Task.objects.filter(assigned_to=request.user)  # Employees see only their tasks
-
+    tasks = Task.objects.filter(assigned_to=request.user) if request.user.role == "employee" else Task.objects.all()
     return render(request, "tasklist.html", {"tasks": tasks})
 
 @login_required
