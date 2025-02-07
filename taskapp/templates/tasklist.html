@@ -1,0 +1,7 @@
+<h2>Task List</h2>
+<ul>
+    {% for task in tasks %}
+        <li>{{ task.title }} - {{ task.status }} - Assigned to: {{ task.assigned_to.username }}</li>
+    {% endfor %}
+</ul>
+<a href="{% url 'createtask' %}">Create New Task</a>
