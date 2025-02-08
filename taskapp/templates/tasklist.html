@@ -2,7 +2,9 @@
 {% block title %}My Tasks{% endblock %}
 
 {% block content %}
-<h2 class="mb-3">Your Assigned Tasks</h2>
+<h2 class="mb-3">Assigned Tasks</h2>
+<a href="{% url 'createtask' %}">Create New Task</a> 
+<h3>Pending Tasks</h3>
 <table class="table table-striped">
     <thead>
         <tr>
@@ -12,19 +14,65 @@
         </tr>
     </thead>
     <tbody>
-        {% for task in tasks %}
-        <tr>
-            <td>{{ task.title }}</td>
-            <td>{{ task.status }}</td>
-            <td>{{ task.due_date }}</td>
-        </tr>
+        {% for task in tasks_pending %}
+            <tr>
+                <td><a href="{% url 'taskdetail' task.id %}"></a>{{ task.title }}</td>
+                <td>{{ task.status }}</td>
+                <td>{{ task.due_date }}</td>
+            </tr>
         {% empty %}
-        <tr>
-            <td colspan="3" class="text-center">No tasks assigned.</td>
-        </tr>
+            <tr>
+                <td colspan="3" class="text-center">No tasks assigned.</td>
+            </tr>
         {% endfor %}
-
-        <a href="{% url 'createtask' %}">Create New Task</a>    
     </tbody>
 </table>
+<h3>In Progress Tasks</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Due Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for task in tasks_inprogress %}
+            <tr>
+                <td><a href="{% url 'taskdetail' task.id %}"></a>{{ task.title }}</td>
+                <td>{{ task.status }}</td>
+                <td>{{ task.due_date }}</td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="3" class="text-center">No tasks assigned.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<h3>Completed Tasks</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Due Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for task in tasks_completed %}
+            <tr>
+                <td><a href="{% url 'taskdetail' task.id %}"></a>{{ task.title }}</td>
+                <td>{{ task.status }}</td>
+                <td>{{ task.due_date }}</td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="3" class="text-center">No tasks assigned.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+   
+        
 {% endblock %}

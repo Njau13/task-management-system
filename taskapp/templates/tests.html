@@ -1,0 +1,58 @@
+{% extends 'index.html' %}
+{% block title %}My Tasks{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">Your Assigned Tasks</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Due Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for task in tasks %}
+        <tr>
+            <td><a href="{% url 'taskdetail' task.id %}"></a>{{ task.title }}</td>
+            <td>{{ task.status }}</td>
+            <td>{{ task.due_date }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="3" class="text-center">No tasks assigned.</td>
+        </tr>
+        {% endfor %}
+
+        
+
+    </tbody>
+</table>
+<a href="{% url 'createtask' %}">Create New Task</a>    
+        <h3>Pending Tasks</h3>
+        <ul>
+            {% for task in tasks %}
+                {% if task.status == "pending" %}
+                    <li><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+
+        <h3>In Progress Tasks</h3>
+        <ul>
+            {% for task in tasks %}
+                {% if task.status == "in_progress" %}
+                    <li><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+
+        <h3>Completed Tasks</h3>
+        <ul>
+            {% for task in tasks %}
+                {% if task.status == "completed" %}
+                    <li><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+{% endblock %}
