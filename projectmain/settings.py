@@ -84,6 +84,9 @@ DATABASES = {
 
 AUTH_USER_MODEL = "authenticate.CustomUser"
 LOGIN_URL = "/authenticate/login/"
+LOGIN_REDIRECT_URL = "tasklist"  # Change this to your desired page
+LOGOUT_REDIRECT_URL = "login"  # Redirect to login after logout
+
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
