@@ -2,7 +2,8 @@
 {% block title %}My Tasks{% endblock %}
 
 {% block content %}
-<h2 class="mb-3">Your Assigned Tasks</h2>
+<h2 class="mb-3">Assigned Tasks</h2>
+<h3>Pending Tasks</h3>
 <table class="table table-striped">
     <thead>
         <tr>
@@ -13,6 +14,7 @@
     </thead>
     <tbody>
         {% for task in tasks %}
+        {% if task.status == "pending" %}
         <tr>
             <td><a href="{% url 'taskdetail' task.id %}"></a>{{ task.title }}</td>
             <td>{{ task.status }}</td>
@@ -29,7 +31,7 @@
     </tbody>
 </table>
 <a href="{% url 'createtask' %}">Create New Task</a>    
-        <h3>Pending Tasks</h3>
+        
         <ul>
             {% for task in tasks %}
                 {% if task.status == "pending" %}

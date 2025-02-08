@@ -3,7 +3,9 @@
 {% block content %}
 <h2>{{ task.title }}</h2>
 <p><strong>Assigned To:</strong> {{ task.assigned_to }}</p>
+<p><strong>Assigned By:</strong> {{ task.assigned_by.username|default:"Unknown" }}</p>
 <p><strong>Status:</strong> {{ task.get_status_display }}</p>
+<p><strong>Description:</strong> {{ task.description }}</p>
 <p><strong>Created By:</strong> {{ task.created_by }}</p>
 
 <!-- Form to update task status -->

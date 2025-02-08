@@ -2,15 +2,14 @@
 {% block title %}My Tasks{% endblock %}
 
 {% block content %}
-<h2 class="text-center">Welcome,{{ request.user.username }}</h2>
-<h2 class="text-center">Your Assigned Tasks</h2>
-<a href="{% url 'createtask' %}" >Create New Task</a> 
+<h2 class="text-center">Assigned Tasks</h2>
+<a href="{% url 'createtask' %}">Create New Task</a> 
 <h5>Pending Tasks</h5>
 <table class="table table-striped">
     <thead>
         <tr>
             <th>Title</th>
-            <th>Assigned By</th>
+            <th>Assigned to</th>
             <th>Due Date</th>
         </tr>
     </thead>
@@ -18,12 +17,12 @@
         {% for task in tasks_pending %}
             <tr>
                 <td><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></td>
-                <td>{{ task.assigned_by}}</td>
+                <td>{{ task.assigned_to }}</td>
                 <td>{{ task.due_date }}</td>
             </tr>
         {% empty %}
             <tr>
-                <td colspan="3" class="text-center">No pending tasks.</td>
+                <td colspan="3" class="text-center">No tasks assigned.</td>
             </tr>
         {% endfor %}
     </tbody>
@@ -33,7 +32,7 @@
     <thead>
         <tr>
             <th>Title</th>
-            <th>Assigned By</th>
+            <th>Assigned To</th>
             <th>Due Date</th>
         </tr>
     </thead>
@@ -41,12 +40,12 @@
         {% for task in tasks_in_progress %}
             <tr>
                 <td><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></td>
-                <td>{{ task.assigned_by }}</td>
+                <td>{{ task.assigned_to }}</td>
                 <td>{{ task.due_date }}</td>
             </tr>
         {% empty %}
             <tr>
-                <td colspan="3" class="text-center">No tasks in progress.</td>
+                <td colspan="3" class="text-center">No tasks assigned.</td>
             </tr>
         {% endfor %}
     </tbody>
@@ -56,7 +55,7 @@
     <thead>
         <tr>
             <th>Title</th>
-            <th>Assigned By</th>
+            <th>Assigned To</th>
             <th>Due Date</th>
         </tr>
     </thead>
@@ -64,12 +63,12 @@
         {% for task in tasks_completed %}
             <tr>
                 <td><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></td>
-                <td>{{ task.assigned_by }}</td>
+                <td>{{ task.assigned_to }}</td>
                 <td>{{ task.due_date }}</td>
             </tr>
         {% empty %}
             <tr>
-                <td colspan="3" class="text-center">No completed tasks.</td>
+                <td colspan="3" class="text-center">No tasks assigned.</td>
             </tr>
         {% endfor %}
     </tbody>

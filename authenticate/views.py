@@ -21,8 +21,12 @@ def login_user(request):
         password = request.POST["password"]
         user = authenticate(request, username=username, password=password)
         if user is not None:
-            login(request, user)
-            return redirect("tasklist")  # Redirect to your dashboard
+            if request.user.role == "manager":
+                login(request, user)
+                return redirect("managerlist")  # Redirect to your dashboard
+            else:
+                login(request, user)
+                return redirect("tasklist")
         else:
             messages.error(request, "Invalid credentials")
     return render(request, "login.html")
