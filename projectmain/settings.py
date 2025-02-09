@@ -84,8 +84,8 @@ DATABASES = {
 
 AUTH_USER_MODEL = "authenticate.CustomUser"
 LOGIN_URL = "/authenticate/login/"
-LOGIN_REDIRECT_URL = "tasklist" 
-LOGIN_REDIRECT_URL = "managerlist" # Change this to your desired page
+#LOGIN_REDIRECT_URL = "tasklist" 
+#LOGIN_REDIRECT_URL = "managerlist" # Change this to your desired page
 LOGOUT_REDIRECT_URL = "login"  # Redirect to login after logout
 
 # Password validation

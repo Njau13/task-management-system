@@ -21,14 +21,15 @@ def login_user(request):
         password = request.POST["password"]
         user = authenticate(request, username=username, password=password)
         if user is not None:
-            if request.user.role == "manager":
-                login(request, user)
-                return redirect("managerlist")  # Redirect to your dashboard
+            login(request, user)
+            if user.role == "employee":
+                return redirect("tasklist")  # Redirect to your dashboard
+            elif user.role == "manager":
+                return redirect("managerlist")
             else:
-                login(request, user)
-                return redirect("tasklist")
+                return redirect("login_user")
         else:
-            messages.error(request, "Invalid credentials")
+            return render(request, "login.html", {"error": "Invalid username or password"})
     return render(request, "login.html")
 
 def logout_user(request):
