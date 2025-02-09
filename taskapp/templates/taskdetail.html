@@ -1,22 +1,24 @@
 {% extends "index.html" %}
 
 {% block content %}
-<h2>{{ task.title }}</h2>
-<p><strong>Assigned To:</strong> {{ task.assigned_to }}</p>
-<p><strong>Assigned By:</strong> {{ task.assigned_by.username|default:"Unknown" }}</p>
-<p><strong>Status:</strong> {{ task.get_status_display }}</p>
-<p><strong>Description:</strong> {{ task.description }}</p>
-<p><strong>Created By:</strong> {{ task.created_by }}</p>
+<div class="container mt-4">
+    <h2>{{ task.title }}</h2>
+    <p><strong>Assigned To:</strong> {{ task.assigned_to }}</p>
+    <p><strong>Assigned By:</strong> {{ task.assigned_by.username|default:"Unknown" }}</p>
+    <p><strong>Status:</strong> {{ task.get_status_display }}</p>
+    <p><strong>Description:</strong> {{ task.description }}</p>
+    <p><strong>Created By:</strong> {{ task.created_by }}</p>
 
-<!-- Form to update task status -->
-<form method="post">
-    {% csrf_token %}
-    <label for="status">Update Status:</label>
-    <select name="status" id="status">
-        <option value="pending" {% if task.status == "pending" %}selected{% endif %}>Pending</option>
-        <option value="in_progress" {% if task.status == "in_progress" %}selected{% endif %}>In Progress</option>
-        <option value="completed" {% if task.status == "completed" %}selected{% endif %}>Completed</option>
-    </select>
-    <button type="submit" class="btn btn-primary">Update</button>
-</form>
+    <!-- Form to update task status -->
+    <form method="post">
+        {% csrf_token %}
+        <label for="status">Update Status:</label>
+        <select name="status" id="status">
+            <option value="pending" {% if task.status == "pending" %}selected{% endif %}>Pending</option>
+            <option value="in_progress" {% if task.status == "in_progress" %}selected{% endif %}>In Progress</option>
+            <option value="completed" {% if task.status == "completed" %}selected{% endif %}>Completed</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Update</button>
+    </form>
+</div>
 {% endblock %}

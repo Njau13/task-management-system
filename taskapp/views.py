@@ -6,18 +6,42 @@ from django.contrib.auth import get_user_model
 from django.views.generic import DetailView
 from django.views import View
 from django.db.models import Q
+from datetime import datetime, timedelta
 
 User = get_user_model()
 
 @login_required
 def task_list(request):
-    #tasks = Task.objects.filter(assigned_to=request.user) if request.user.role == "employee" else Task.objects.all()
-    tasks_pending = Task.objects.filter( Q(status="pending") & (Q(assigned_to=request.user) if request.user.role == "employee" else Q()))
-    tasks_in_progress = Task.objects.filter(Q(status="in_progress") & (Q(assigned_to=request.user) if request.user.role == "employee" else Q()))
-    tasks_completed = Task.objects.filter(Q(status="completed") & (Q(assigned_to=request.user) if request.user.role == "employee" else Q()))
-    return render(request, "tasklist.html", { "tasks_pending": tasks_pending,
-        "tasks_in_progress": tasks_in_progress,
-        "tasks_completed": tasks_completed,})
+    filter_type = request.GET.get("filter")  # Get filter from URL
+    today = datetime.today().date()
+
+    tasks = Task.objects.filter(assigned_to=request.user)
+    
+    # **Apply additional filters dynamically using `Q`**
+    filter_conditions = Q()
+
+    if filter_type == "today":
+        filter_conditions &= Q(due_date=today)
+    elif filter_type == "tomorrow":
+        filter_conditions &= Q(due_date=today + timedelta(days=1))
+    elif filter_type == "this_week":
+        week_start = today - timedelta(days=today.weekday())  # Start of the week (Monday)
+        week_end = week_start + timedelta(days=6)  # End of the week (Sunday)
+        filter_conditions &= Q(due_date__range=[week_start, week_end])
+    elif filter_type == "this_month":
+        filter_conditions &= Q(due_date__month=today.month)
+    elif filter_type == "pending":
+        filter_conditions &= Q(status="pending")
+    elif filter_type == "in_progress":
+        filter_conditions &= Q(status="in_progress")
+    elif filter_type == "completed":
+        filter_conditions &= Q(status="completed")
+
+    # **Apply filters**
+    tasks = tasks.filter(filter_conditions)
+
+    return render(request, "tasklist.html", {"tasks": tasks})
+
 
 @login_required
 def manager_list(request):
