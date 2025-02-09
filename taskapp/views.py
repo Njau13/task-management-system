@@ -1,6 +1,6 @@
-from django.shortcuts import render, redirect
-from .models import Task
-from .forms import TaskForm
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Project, Task
+from .forms import  ProjectForm, TaskForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.views.generic import DetailView
@@ -9,6 +9,48 @@ from django.db.models import Q
 from datetime import datetime, timedelta
 
 User = get_user_model()
+
+@login_required
+def manager_dashboard(request):
+    projects = Project.objects.filter(manager=request.user)
+    return render(request, "managerdashboard.html", {"projects": projects})
+
+@login_required
+def project_detail(request, project_id):
+    project = get_object_or_404(Project, id=project_id, manager=request.user)
+    tasks = project.tasks.all()
+    return render(request, "projectdetail.html", {"project": project, "tasks": tasks})
+
+@login_required
+def create_project(request):
+    if request.method == "POST":
+        form = ProjectForm(request.POST)
+        if form.is_valid():
+            project = form.save(commit=False)
+            project.manager = request.user
+            project.save()
+            return redirect("manager_dashboard")
+    else:
+        form = ProjectForm()
+    return render(request, "createproject.html", {"form": form})
+
+@login_required
+def create_projecttask(request, project_id):
+    project = get_object_or_404(Project, id=project_id)  # Get the project
+    form = TaskForm(request.POST or None)
+
+    if request.method == "POST"and form.is_valid():
+        #form = TaskForm(request.POST)
+        #if form.is_valid():
+        #form.save()
+        task = form.save(commit=False)
+        task.project = project
+        task.assigned_by = request.user  # Set the user who assigned the task
+        task.save()
+        return redirect("project_detail", project_id=project.id)
+    #else:
+        #form = TaskForm()        
+    return render(request, "createprojecttask.html", {"form": form, "project": project})
 
 @login_required
 def task_list(request):

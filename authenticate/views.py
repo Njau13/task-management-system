@@ -4,16 +4,6 @@ from django.contrib import messages
 from .forms import RegisterForm
 from django.contrib.auth.decorators import login_required
 
-def register_user(request):
-    if request.method == "POST":
-        form = RegisterForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)  # Auto login after registration
-            return redirect("tasklist")  # Change to your main page
-    else:
-        form = RegisterForm()
-    return render(request, "register.html", {"form": form})
 
 def login_user(request):
     if request.method == "POST":
@@ -27,10 +17,22 @@ def login_user(request):
             elif user.role == "manager":
                 return redirect("managerlist")
             else:
-                return redirect("login_user")
+                return redirect("login")
         else:
             return render(request, "login.html", {"error": "Invalid username or password"})
     return render(request, "login.html")
+
+def register_user(request):
+    if request.method == "POST":
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            form.save()
+            #login(request, user)  # Auto login after registration
+            return redirect("login") 
+    else:
+        form = RegisterForm()
+    return render(request, "register.html", {"form": form})
+
 
 def logout_user(request):
     logout(request)

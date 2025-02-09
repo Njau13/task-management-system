@@ -1,0 +1,21 @@
+{% extends "index.html" %}
+{% block content %}
+<h2>{{ project.name }}</h2>
+<p>{{ project.description }}</p>
+<h3>Tasks</h3>
+<a href="{% url 'create_projecttask' project.id %}" class="btn btn-primary">Assign New Task</a>
+<table class="table">
+    <tr>
+        <th>Task</th>
+        <th>Assigned To</th>
+        <th>Status</th>
+    </tr>
+    {% for task in tasks %}
+    <tr>
+        <td><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></td>
+        <td>{{ task.assigned_to.username }}</td>
+        <td>{{ task.status }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

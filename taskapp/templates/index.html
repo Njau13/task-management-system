@@ -35,7 +35,7 @@
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container-fluid">
                 {% if request.user.role == "manager" %}
-                        <a class="navbar-brand" href="{% url 'managerlist' %}" class="btn btn-secondary">Task Manager</a>
+                        <a class="navbar-brand" href="{% url 'manager_dashboard' %}" class="btn btn-secondary">Task Manager</a>
                 {% else %}
                         <a class="navbar-brand" href="{% url 'tasklist' %}" class="btn btn-secondary">Task Manager</a>
                 {% endif %}

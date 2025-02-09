@@ -1,0 +1,18 @@
+{% extends "index.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Create a New Project</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="id_name" class="form-label">Project Name</label>
+            {{ form.name }}
+        </div>
+        <div class="mb-3">
+            <label for="id_description" class="form-label">Description</label>
+            {{ form.description }}
+        </div>
+        <button type="submit" class="btn btn-primary">Create Project</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "index.html" %}
+{% block content %}
+<h2>Manager Dashboard</h2>
+<a href="{% url 'create_project' %}" class="btn btn-primary">Start New Project</a>
+<table class="table">
+    <tr>
+        <th>Project Name</th>
+        <th>Status</th>
+        <th>Actions</th>
+    </tr>
+    {% for project in projects %}
+        <tr>
+            <td>{{ project.name }}</td>
+            <td>{{ project.status }}</td>
+            <td><a href="{% url 'project_detail' project.id %}">Edit</a></td>
+        </tr>
+    {%empty%}
+        <tr>
+            <td>No such data</td>
+        </tr>
+    {% endfor %}
+</table>
+{% endblock %}
