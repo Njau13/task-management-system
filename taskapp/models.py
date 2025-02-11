@@ -10,6 +10,13 @@ class Project(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=[("pending", "Pending"), ("in_progress", "In Progress"), ("completed", "Completed")])
 
+    def progress(self):
+        tasks = self.tasks.all()
+        if not tasks:
+            return 0
+        completed_tasks = tasks.filter(status="completed").count()
+        return (completed_tasks / tasks.count()) * 100  # Percentage complete
+
     def __str__(self):
         return self.name
 
@@ -28,6 +35,7 @@ class Task(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     created_at = models.DateTimeField(auto_now_add=True)
     due_date = models.DateTimeField()
+    order = models.PositiveIntegerField(default=0)  # Defines task order
 
     def __str__(self):
         return self.title

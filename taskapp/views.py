@@ -18,8 +18,16 @@ def manager_dashboard(request):
 @login_required
 def project_detail(request, project_id):
     project = get_object_or_404(Project, id=project_id, manager=request.user)
-    tasks = project.tasks.all()
-    return render(request, "projectdetail.html", {"project": project, "tasks": tasks})
+    tasks = project.tasks.all().order_by("order")
+    # Find the next task that should be pending
+    for task in tasks:
+        if task.status == "completed":
+            continue
+        elif task.status == "pending":
+            task.status = "in_progress"
+            task.save()
+            break
+    return render(request, "projectdetail.html", {"project": project, "tasks": tasks, "progress": project.progress()})
 
 @login_required
 def create_project(request):
