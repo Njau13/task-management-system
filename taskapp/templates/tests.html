@@ -1,7 +1,29 @@
 {% extends 'index.html' %}
 {% block title %}My Tasks{% endblock %}
 
+<!-- Sidebar Navigation -->
+<div class="sidebar">
+        
+    <h4 class="text-center">Task Filters</h4>
+     
+    <h6 class="px-3 mt-3">By Time</h6>
+    <a href="{% url 'tasklist' %}?filter=today">Today</a>
+    <a href="{% url 'tasklist' %}?filter=tomorrow">Tomorrow</a>
+    <a href="{% url 'tasklist' %}?filter=this_week">This Week</a>
+
+    <h6 class="px-3 mt-3">By Status</h6>
+    <a href="{% url 'tasklist' %}?filter=pending">Pending</a>
+    <a href="{% url 'tasklist' %}?filter=in_progress">In Progress</a>
+    <a href="{% url 'tasklist' %}?filter=completed">Completed</a>
+
+
+</div>
 {% block content %}
+<div class="text-center mt-4">
+    <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+        + Add Task
+    </button>
+</div>
 <h2 class="mb-3">Assigned Tasks</h2>
 <h3>Pending Tasks</h3>
 <table class="table table-striped">

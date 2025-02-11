@@ -20,4 +20,30 @@
         </tr>
     {% endfor %}
 </table>
+ <!-- Create Task Modal -->
+ <div class="modal fade" id="createTaskModal" tabindex="-1" aria-labelledby="createTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createTaskModalLabel">Create New Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm" method="POST">
+                    {% csrf_token %}
+                    <p><strong>Task Title:</strong> {{ form.title }}</p>
+                    <p><strong>Description:</strong> {{ form.description }}</p>
+                    <p><strong>Assigned To:</strong> {{ form.assigned_to }}</p>
+                    <p><strong>Status:</strong> {{ form.status }}</p>           
+                    <p><strong>Project</strong> {{ form.project }}</p>
+                    <p><strong>Due By</strong> {{ form.due_date }}</p>
+
+                    <button type="submit" class="btn btn-dark w-100 mt-2">Add Task</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 {% endblock %}

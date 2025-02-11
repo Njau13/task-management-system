@@ -13,9 +13,9 @@ def login_user(request):
         if user is not None:
             login(request, user)
             if user.role == "employee":
-                return redirect("tasklist")  # Redirect to your dashboard
+                return redirect("employee_dashboard")  # Redirect to your dashboard
             elif user.role == "manager":
-                return redirect("managerlist")
+                return redirect("manager_dashboard")
             else:
                 return redirect("login")
         else:

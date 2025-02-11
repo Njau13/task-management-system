@@ -11,9 +11,41 @@ from datetime import datetime, timedelta
 User = get_user_model()
 
 @login_required
+def employee_dashboard(request):
+    tasks_pending = Task.objects.filter(assigned_to=request.user, status="pending")
+    tasks_completed = Task.objects.filter(assigned_to=request.user, status="completed")
+    tasks_in_progress = Task.objects.filter(assigned_to=request.user, status="in_progress")
+
+    if request.method == "POST":
+        form = TaskForm(request.POST)
+        if form.is_valid():
+            task = form.save(commit=False)
+            task.assigned_to = request.user  # Assign task to logged-in user
+            task.assigned_by = request.user
+            task.save()
+            return redirect("employee_dashboard")  # Refresh the page after adding
+    else:
+        form = TaskForm()
+
+    return render(request, "dashboard.html", {
+        "tasks_pending": tasks_pending,
+        "tasks_completed": tasks_completed,
+        "tasks_in_progress": tasks_in_progress,
+        "form": form,
+    })
+@login_required
 def manager_dashboard(request):
     projects = Project.objects.filter(manager=request.user)
-    return render(request, "managerdashboard.html", {"projects": projects})
+    if request.method == "POST":
+        form = TaskForm(request.POST)
+        if form.is_valid():
+            task = form.save(commit=False)
+            task.assigned_by = request.user
+            task.save()
+            return redirect("manager_dashboard")  # Refresh the page after adding
+    else:
+        form = TaskForm()
+    return render(request, "managerdashboard.html", {"projects": projects, "form": form, })
 
 @login_required
 def project_detail(request, project_id):
@@ -101,6 +133,17 @@ def manager_list(request):
     return render(request, "manager.html", {"tasks_pending": tasks_pending,
         "tasks_in_progress": tasks_in_progress,
         "tasks_completed": tasks_completed,})
+        
+@login_required
+def delete_task(request, task_id):
+    task = get_object_or_404(Task, id=task_id)
+
+    # Ensure only the assigned user or manager can delete
+    if request.user == task.assigned_to or request.user.role == "manager":
+        task.delete()
+        return redirect("employee_dashboard")  # Redirect after deletion
+    else:
+        return redirect("task_detail", task_id=task.id)  # Prevent unauthorized deletion
 
 @login_required
 def create_task(request):
@@ -125,7 +168,7 @@ class TaskDetailView(View):
         task = Task.objects.get(id=pk)
         task.status = request.POST.get("status")
         task.save()
-        return redirect("taskdetail", pk=task.id)
+        return redirect("employee_dashboard")
 
 def testlist(request):
     return render(request, "tests.html")

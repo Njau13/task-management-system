@@ -1,0 +1,91 @@
+{% extends "index.html" %}  
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Task Status Cards -->
+        <div class="col-md-4">
+            <div class="card border-warning shadow">
+                <div class="card-header bg-warning text-white">Pending Tasks</div>
+                <div class="card-body">
+                    {% for task in tasks_pending %}
+                        <div class="card mb-2 p-2 shadow-sm">
+                            <a href="{% url 'taskdetail' task.id %}" style="font-weight:bold ;">{{ task.title }}</a>
+                            <p class="card-text small">{{ task.description }}</p>
+                            <p class="text-muted small">Due: {{ task.due_date }}</p>
+                        </div>
+                    {% empty %}
+                        <p class="text-center text-muted">No pending tasks</p>
+                    {% endfor %}
+                </div>
+                
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-primary shadow">
+                <div class="card-header bg-primary text-white">In Progress</div>
+                <div class="card-body">
+                    {% for task in tasks_in_progress %}
+                        <div class="card mb-2 p-2 shadow-sm">
+                            <a href="{% url 'taskdetail' task.id %}" style="font-weight:bold ;">{{ task.title }}</a>
+                            <p class="card-text small">{{ task.description }}</p>
+                            <p class="text-muted small">Due: {{ task.due_date }}</p>
+                        </div>
+                    {% empty %}
+                        <p class="text-center text-muted">No tasks in progress</p>
+                    {% endfor %}
+                </div>
+                
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-success shadow">
+                <div class="card-header bg-success text-white">Completed Tasks</div>
+                <div class="card-body">
+                    {% for task in tasks_completed %}
+                        <div class="card mb-2 p-2 shadow-sm">
+                            <a href="{% url 'taskdetail' task.id %}" style="font-weight:bold ;">{{ task.title }}</a>
+                            <p class="card-text small">{{ task.description }}</p>
+                            <p class="text-muted small">Completed on: {{ task.completed_date }}</p>
+                        </div>
+                    {% empty %}
+                        <p class="text-center text-muted">No completed tasks</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Task Button -->
+    <div class="text-center mt-4">
+        <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+            + Add Task
+        </button>
+    </div>
+
+    <!-- Create Task Modal -->
+    <div class="modal fade" id="createTaskModal" tabindex="-1" aria-labelledby="createTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createTaskModalLabel">Create New Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="taskForm" method="POST">
+                        {% csrf_token %}
+                        <p><strong>Task Title:</strong> {{ form.title }}</p>
+                        <p><strong>Description:</strong> {{ form.description }}</p>                       
+                        <p><strong>Status:</strong> {{ form.status }}</p>                                  
+                        <p><strong>Due By</strong> {{ form.due_date }}</p>
+                        <button type="submit" class="btn btn-dark w-100 mt-2">Add Task</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

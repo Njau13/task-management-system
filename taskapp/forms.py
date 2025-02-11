@@ -5,7 +5,7 @@ from django.utils.timezone import now
 class TaskForm(forms.ModelForm):
     class Meta:
         model = Task
-        fields = ["title", "description","project", "assigned_to", "status",  "due_date"]
+        fields = ["title", "description", "status", "due_date",  "project", "assigned_to"  ]
         widgets = {
             "due_date": forms.DateTimeInput(attrs={"type": "datetime-local"})
         }
@@ -20,3 +20,4 @@ class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
         fields = ["name", "description"]
+
