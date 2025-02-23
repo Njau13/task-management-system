@@ -7,6 +7,7 @@ from django.views.generic import DetailView
 from django.views import View
 from django.db.models import Q
 from datetime import datetime, timedelta
+from django.utils.timezone import make_aware, localtime
 
 User = get_user_model()
 
@@ -15,7 +16,10 @@ def employee_dashboard(request):
     tasks_pending = Task.objects.filter(assigned_to=request.user, status="pending")
     tasks_completed = Task.objects.filter(assigned_to=request.user, status="completed")
     tasks_in_progress = Task.objects.filter(assigned_to=request.user, status="in_progress")
-
+    today = localtime().date()
+    tasks_today =Task.objects.filter(assigned_to=request.user, due_date__date=today) #Uses .date() to match only the date part of due_date (ignores time).
+    overdue = localtime().date()
+    tasks_overdue= Task.objects.filter(assigned_to=request.user, due_date__date__lt=overdue).exclude(status="completed") #lt means less than today
     if request.method == "POST":
         form = TaskForm(request.POST)
         if form.is_valid():
@@ -31,8 +35,38 @@ def employee_dashboard(request):
         "tasks_pending": tasks_pending,
         "tasks_completed": tasks_completed,
         "tasks_in_progress": tasks_in_progress,
+        "tasks_today":tasks_today,
+        "tasks_overdue":tasks_overdue,
         "form": form,
     })
+
+@login_required
+def marketplace(request):
+    tasks_marketplace= Task.objects.filter(status="marketplace")
+    if request.method == "POST":
+        form = TaskForm(request.POST)
+        if form.is_valid():
+            task = form.save(commit=False)
+            task.status = "marketplace"
+            task.assigned_by = request.user
+            task.assigned_to = request.user
+            task.save()
+            return redirect("marketplace")  # Refresh the page after adding
+        else:
+            print(form.errors)
+    else:
+        form = TaskForm()
+    return render(request, "marketplace.html", {"form": form,"tasks_marketplace":tasks_marketplace})
+    
+@login_required
+def takeon(request, task_id):
+    task = get_object_or_404(Task, id=task_id)
+    task.assigned_to=request.user
+    task.status="pending"
+    task.save()
+    return redirect("employee_dashboard")
+
+
 @login_required
 def manager_dashboard(request):
     projects = Project.objects.filter(manager=request.user)

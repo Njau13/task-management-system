@@ -1,22 +1,18 @@
 {% extends "index.html" %}
 {% block content %}
 <h2>Manager Dashboard</h2>
-<a href="{% url 'create_project' %}" class="btn btn-primary">Start New Project</a>
+<a href="{% url 'create_project' %}" class="btn btn-primary" >Start New Project</a>
 <table class="table">
     <tr>
         <th>Project Name</th>
-        <th>Status</th>
-        <th>Actions</th>
     </tr>
     {% for project in projects %}
         <tr>
             <td><a href="{% url 'project_detail' project.id %}">{{ project.name }}</a></td>
-            <td>{{ progress }}</td>
-            <td><a href="{% url 'project_detail' project.id %}">Edit</a></td>
         </tr>
     {%empty%}
         <tr>
-            <td>No such data</td>
+            <td colspan="3" class="text-center">No Ongoing Projects</td>
         </tr>
     {% endfor %}
 </table>

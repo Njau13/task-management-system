@@ -1,0 +1,55 @@
+{% extends 'index.html' %}
+{% block title %}My Tasks{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-center">Task Market place</h2>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Title</th>               
+                <th>Details</th>
+                <th>Assigned by</th>
+                <th>Take On</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks_marketplace %}
+                <tr>
+                    <td>{{ task.title }}</td>
+                    <td>{{ task.description }}</td> 
+                    <td>{{ task.assigned_by }}</td>
+                    <td><a href="{% url 'takeon' task.id %}" class="btn btn-primary" onclick="return confirm('Are you sure you want to take on this task?');">Take On</a></td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center">No tasks assigned.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Create Task Modal -->
+    <div class="modal fade" id="createTaskModal" tabindex="-1" aria-labelledby="createTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createTaskModalLabel">Add a Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="taskForm" method="POST">
+                        {% csrf_token %}
+                        <p><strong>Task Title:</strong> {{ form.title }}</p>
+                        <p><strong>Description:</strong> {{ form.description }}</p>                                                       
+                        <p><strong>Due By</strong> {{ form.due_date }}</p>
+                        <button type="submit" class="btn btn-dark w-100 mt-2">Add Task</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>    
+        
+{% endblock %}

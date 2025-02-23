@@ -82,6 +82,7 @@ DATABASES = {
     }
 }
 
+
 AUTH_USER_MODEL = "authenticate.CustomUser"
 LOGIN_URL = "/authenticate/login/"
 #LOGIN_REDIRECT_URL = "tasklist" 
