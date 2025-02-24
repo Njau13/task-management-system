@@ -3,9 +3,10 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-5">
-        <div class="card shadow-sm p-4">
+    <div class="col-md-8">
+        <div class="card shadow-sm p-3">
             <h3 class="text-center">Task Manager Register</h3>
+            <!--Registration Form-->
             <form method="post">
                 {% csrf_token %}
                 {% for field in form %}
@@ -13,14 +14,14 @@
                         <label class="form-label">{{ field.label }}</label>
                         {{ field }}
                         {% if field.errors %}
-                            <small class="text-danger">{{ field.errors|striptags }}</small>
+                            <p class="text-danger">{{ field.errors|striptags }}</p> <!--Displays the form errors and removes the tags-->
                         {% endif %}
                     </div>
                 {% endfor %}
                 <button type="submit" class="btn btn-success w-100" style="background-color: teal;">Register</button>
             </form>
             <div class="text-center mt-3">
-                <small>Already have an account? <a href="{% url 'login' %}">Login</a></small>
+                <p>Already have an account? <a href="{% url 'login' %}">Login</a></p>
             </div>
         </div>
     </div>

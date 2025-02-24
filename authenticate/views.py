@@ -4,7 +4,6 @@ from django.contrib import messages
 from .forms import RegisterForm
 from django.contrib.auth.decorators import login_required
 
-
 def login_user(request):
     if request.method == "POST":
         username = request.POST["username"]
@@ -19,7 +18,7 @@ def login_user(request):
             else:
                 return redirect("login")
         else:
-            return render(request, "login.html", {"error": "Invalid username or password"})
+            messages.error(request, "Entered information is invalid")
     return render(request, "login.html")
 
 def register_user(request):
@@ -38,6 +37,3 @@ def logout_user(request):
     logout(request)
     return redirect("login")
 
-@login_required
-def dashboard(request):
-   return render(request, "tasklist")
