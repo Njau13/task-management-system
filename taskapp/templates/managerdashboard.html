@@ -5,11 +5,17 @@
 <table class="table">
     <tr>
         <th>Project Name</th>
+        <th>Project Description</th>
+        <th>Delete Project</th>
     </tr>
     {% for project in projects %}
         <tr>
-            <td><a href="{% url 'project_detail' project.id %}">{{ project.name }}</a></td>
+            <td><a href="{% url 'project_detail' project.id %}" style="font-weight: bold;">{{ project.name }}</a></td>
+            <td><a href="{% url 'project_detail' project.id %}">{{ project.description }}</a></td>
+            <td><a href="{% url 'delete_project' project.id %}" class="btn btn-danger"
+                onclick="return confirm('Are you sure you want to delete this project?');">Delete Project</a></td>
         </tr>
+
     {%empty%}
         <tr>
             <td colspan="3" class="text-center">No Ongoing Projects</td>

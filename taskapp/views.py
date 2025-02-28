@@ -1,9 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Project, Task
-from .forms import  ProjectForm, TaskForm
+from .forms import  ProjectForm, TaskForm, AssignTaskForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
-from django.views.generic import DetailView
+#from django.views.generic import DetailView
 from django.views import View
 from django.db.models import Q
 from datetime import datetime, timedelta
@@ -84,34 +84,9 @@ def manager_dashboard(request):
 @login_required
 def project_detail(request, project_id):
     project = get_object_or_404(Project, id=project_id, manager=request.user)
-    tasks = project.tasks.all().order_by("order")
-    # Find the next task that should be pending
-    for task in tasks:
-        if task.status == "completed":
-            continue
-        elif task.status == "pending":
-            task.status = "in_progress"
-            task.save()
-            break
-    return render(request, "projectdetail.html", {"project": project, "tasks": tasks, "progress": project.progress()})
-
-@login_required
-def create_project(request):
-    if request.method == "POST":
-        form = ProjectForm(request.POST)
-        if form.is_valid():
-            project = form.save(commit=False)
-            project.manager = request.user
-            project.save()
-            return redirect("manager_dashboard")
-    else:
-        form = ProjectForm()
-    return render(request, "createproject.html", {"form": form})
-
-@login_required
-def create_projecttask(request, project_id):
-    project = get_object_or_404(Project, id=project_id)  # Get the project
-    form = TaskForm(request.POST or None)
+    tasks = project.tasks.all().order_by("due_date")
+    form = TaskForm(request.POST)
+    
 
     if request.method == "POST"and form.is_valid():
         #form = TaskForm(request.POST)
@@ -119,9 +94,86 @@ def create_projecttask(request, project_id):
         #form.save()
         task = form.save(commit=False)
         task.project = project
+        task.status = "pending"
         task.assigned_by = request.user  # Set the user who assigned the task
         task.save()
         return redirect("project_detail", project_id=project.id)
+    else:
+            print(form.errors) 
+    # Find the next task that should be pending
+    #for task in tasks:
+     #   if task.status == "completed":
+      #      continue
+       # elif task.status == "pending":
+        #    task.status = "in_progress"
+         #   task.save()
+    return render(request, "projectdetail.html", {"project": project, "tasks": tasks, "progress": project.progress(), "form": form})
+
+@login_required
+def assign_task(request, task_id):
+    task = get_object_or_404(Task, id=task_id)  # Get the task
+    if request.method == "POST":
+        form = AssignTaskForm(request.POST, instance=task)
+        if form.is_valid():
+            form.save()  # Save the updated assignment
+            return redirect("project_detail", project_id=task.project.id)  # Redirect after successful update
+    else:
+        form = AssignTaskForm(instance=task)
+
+    return render(request, "assigntask.html", {"form": form, "task": task})
+
+@login_required
+def reassign_task(request, task_id ):
+    task = get_object_or_404(Task, id=task_id)
+    if request.method == "POST":
+        form = TaskForm(request.POST, instance=task)
+        if form.is_valid():
+            task.assigned_to = form.cleaned_data["assigned_to"]  # Only update assigned_to
+            task.save()
+            print(f"Redirecting to project_detail with project_id={task.project.id}")  # Debug print
+            return redirect("project_detail" ,project_id=task.project.id)
+        else:
+            print(form.errors)  # Debug form errors
+
+    else:
+        form = TaskForm(instance=task)
+
+    form.fields.pop("title", None)
+    form.fields.pop("description", None)
+    form.fields.pop("due_date", None)
+
+    return render(request, "assigntask.html", {"form": form, "task": task })
+
+@login_required
+def create_project(request):  
+    if request.method == "POST":
+        form = ProjectForm(request.POST)
+        if form.is_valid():            
+            project = form.save(commit=False)
+            project.manager = request.user
+            project.save()   
+        return redirect("project_detail" ,project_id=project.id)
+    else:
+        form = ProjectForm()
+    return render(request, "createproject.html", {"form": form})
+
+@login_required
+def create_projecttask(request, project_id):
+    project = get_object_or_404(Project, id=project_id,)  # Get the project
+    form = TaskForm(request.POST)
+
+    if request.method == "POST"and form.is_valid():
+        #form = TaskForm(request.POST)
+        #if form.is_valid():
+        #form.save()
+        task = form.save(commit=False)
+        task.project = project
+        task.status = "pending"
+        task.assigned_by = request.user  # Set the user who assigned the task
+        task.save()
+        return redirect("create_projecttask", project_id=project.id)
+    else:
+            print(form.errors) 
     #else:
         #form = TaskForm()        
     return render(request, "createprojecttask.html", {"form": form, "project": project})
@@ -179,18 +231,30 @@ def delete_task(request, task_id):
     else:
         return redirect("task_detail", task_id=task.id)  # Prevent unauthorized deletion
 
+
+@login_required
+def delete_project(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+
+    # Ensure only the assigned user or manager can delete
+    if request.user.role == "manager":
+        project.delete()
+        return redirect("manager_dashboard")  # Redirect after deletion
+    else:
+        return redirect("manager_dashboard")  # Prevent unauthorized deletion
+
 @login_required
 def create_task(request):
+    form = TaskForm(request.POST)
     if request.method == "POST":
-        form = TaskForm(request.POST)
         if form.is_valid():
             #form.save()
             task = form.save(commit=False)
             task.assigned_by = request.user  # Set the user who assigned the task
             task.save()
             return redirect("tasklist")
-    else:
-        form = TaskForm()        
+        else:
+            form = TaskForm()        
     return render(request, "createtask.html", {"form": form})
 
 class TaskDetailView(View):
@@ -203,6 +267,9 @@ class TaskDetailView(View):
         task.status = request.POST.get("status")
         task.save()
         return redirect("employee_dashboard")
+
+
+
 
 def testlist(request):
     return render(request, "tests.html")

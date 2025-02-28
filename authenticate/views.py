@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from .forms import RegisterForm
-from django.contrib.auth.decorators import login_required
+#from django.contrib.auth.decorators import login_required
 
 def login_user(request):
     if request.method == "POST":
@@ -12,7 +12,7 @@ def login_user(request):
         if user is not None:
             login(request, user)
             if user.role == "employee":
-                return redirect("employee_dashboard")  # Redirect to your dashboard
+                return redirect("employee_dashboard")  
             elif user.role == "manager":
                 return redirect("manager_dashboard")
             else:
@@ -26,7 +26,7 @@ def register_user(request):
         form = RegisterForm(request.POST)
         if form.is_valid():
             form.save()
-            #login(request, user)  # Auto login after registration
+            #login(request, user)  # Automatically login after registration
             return redirect("login") 
     else:
         form = RegisterForm()

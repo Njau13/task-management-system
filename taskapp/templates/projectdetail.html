@@ -1,8 +1,5 @@
 {% extends "index.html" %}
 {% block content %}
-<h2>{{ project.name }}</h2>
-<p>{{ project.description }}</p>
-
 <!-- Progress Bar -->
 <div class="progress">
     <div id="progress-bar" class="progress-bar" role="progressbar" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100">
@@ -14,20 +11,53 @@
     document.getElementById("progress-bar").style.width = "{{ progress|floatformat:0 }}%";
 </script>
 
-<h3>Tasks</h3>
-<a href="{% url 'create_projecttask' project.id %}" class="btn btn-primary">Assign New Task</a>
-<table class="table">
+<h2 class="text-center">{{ project.name }}</h2>
+<p class="text-center">{{ project.description }}</p>
+
+
+
+<a data-bs-toggle="modal" data-bs-target="#createTaskModal" class="btn btn-primary mb-2">
+    Create Task
+</a>
+<table class="table table-striped">
     <tr>
         <th>Task</th>
+        <th>Details</th>
+        <th>Due Date</th>
         <th>Assigned To</th>
         <th>Status</th>
+        
     </tr>
     {% for task in tasks %}
     <tr>
-        <td><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></td>
-        <td>{{ task.assigned_to.username }}</td>
+        <td>{{ task.title }}</td>
+        <td>{{ task.description }}</td>
+        <td>{{ task.due_date }}</td>
+        <td><a href="{% url 'assigntask' task.id %}"> {{ task.assigned_to }}</a></td>
         <td>{{ task.status }}</td>
+        
     </tr>
     {% endfor %}
 </table>
+
+<!-- Create Task Modal -->
+<div class="modal fade" id="createTaskModal" tabindex="-1" aria-labelledby="createTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createTaskModalLabel">Create New Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm" method="POST">
+                    {% csrf_token %}
+                    <p><strong>Task Title:</strong> {{ form.title }}</p>
+                    <p><strong>Description:</strong> {{ form.description }}</p>                                                       
+                    <p><strong>Due By</strong> {{ form.due_date }}</p>
+                    <button type="submit" class="btn btn-dark w-100 mt-2">Add Task</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

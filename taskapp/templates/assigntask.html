@@ -8,17 +8,10 @@
     <p><strong>Status:</strong> {{ task.get_status_display }}</p>
     <p><strong>Description:</strong> {{ task.description }}</p>
     <p><strong>Project</strong> {{ task.project }}</p>
-
     <!-- Form to update task status -->
     <form method="post">
         {% csrf_token %}
-        <label for="status">Update Status:</label>
-        <select name="status" id="status">
-            <option value="pending" {% if task.status == "pending" %}selected{% endif %}>Pending</option>
-            <option value="in_progress" {% if task.status == "in_progress" %}selected{% endif %}>In Progress</option>
-            <option value="completed" {% if task.status == "completed" %}selected{% endif %}>Completed</option>
-            <option value="marketplace" {% if task.status == "marketplace" %}selected{% endif %}>Market Place</option>
-        </select>
+        <p><strong>Assigned To</strong> {{ form.assigned_to }}</p>
         <button type="submit" class="btn btn-primary">Update</button>
     </form>
     <a href="{% url 'delete_task' task.id %}" class="btn btn-danger"

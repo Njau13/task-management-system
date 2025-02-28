@@ -1,5 +1,5 @@
 from django import forms
-from .models import Task, Project
+from .models import Task, Project, User
 from django.utils.timezone import now
 
 class TaskForm(forms.ModelForm):
@@ -9,6 +9,9 @@ class TaskForm(forms.ModelForm):
         widgets = {
             "due_date": forms.DateTimeInput(attrs={"type": "datetime-local"})
         }
+        assigned_to = forms.ModelChoiceField(
+            queryset=User.objects.all(), required=False
+        )
 
     def clean_due_date(self):
         due_date = self.cleaned_data.get("due_date")
@@ -20,4 +23,10 @@ class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
         fields = ["name", "description"]
+        
+class AssignTaskForm(forms.ModelForm):
+    assigned_to = forms.ModelChoiceField(queryset=User.objects.all(), label="Reassign Task To")
 
+    class Meta:
+        model = Task
+        fields = ['assigned_to']

@@ -6,8 +6,11 @@
     <h2>Create a New Task</h2>
     <form method="post" class="mt-3">
         {% csrf_token %}
-        {{ form.as_p }}
+        <p><strong>Task Title:</strong> {{ form.title }}</p>
+        <p><strong>Description:</strong> {{ form.description }}</p>
+        <p><strong>Due By</strong> {{ form.due_date }}</p>
         <button type="submit" class="btn btn-primary">Create Task</button>
     </form>
+    <a href="{% url 'project_detail' project.id %}" class="btn btn-primary">Done</a>   
 </div>
 {% endblock %}

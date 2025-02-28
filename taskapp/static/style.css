@@ -8,8 +8,8 @@ a:hover {
 body {
     display: flex;
     padding-top: 50px;
-    background-color: teal;
 }
+
 .table {
     border-radius: 10px;
 }
@@ -31,7 +31,6 @@ body {
     background: #495057;
 }
 .content {
-    
     padding: 20px;
     width: 100%;
 }
@@ -48,7 +47,5 @@ body {
 }
 
 
-.bg-warning .card { border-left-color: #ff9800; }
-.bg-info .card { border-left-color: #2196f3; }
-.bg-success .card { border-left-color: #4caf50; }
+
 
