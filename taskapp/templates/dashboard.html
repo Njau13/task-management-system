@@ -1,9 +1,36 @@
 {% extends "index.html" %}  
 
 {% block content %}
+
+<div class="card border-dark shadow mt-4 mb-4">
+    <div class="card-header text-center bg-dark text-white">Tasks Due today</div>
+
+    <table class="table table-hover table-striped p-3">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks_today %}
+                <tr>
+                    <td><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></td>
+                    <td>{{ task.status }}</td>
+                    <td>{{ task.description }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center">No tasks due today.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     
+</div>
     <div class="row">
-        <h3 class="text-center">Tasks</h3>
+        
         <!-- Task Status Cards -->
         <div class="col-md-4">
             <div class="card border-warning shadow">
@@ -13,7 +40,7 @@
                         <div class="card mb-2 p-2 shadow-sm">
                             <a href="{% url 'taskdetail' task.id %}" style="font-weight:bold ;">{{ task.title }}</a>
                             <p class="card-text small">{{ task.description }}</p>
-                            <p class="text-muted small">Due: {{ task.due_date }}</p>
+                            <p class="text-muted small">Deadline: {{ task.due_date }}</p>
                         </div>
                     {% empty %}
                         <p class="text-center text-muted">No pending tasks</p>
@@ -31,7 +58,7 @@
                         <div class="card mb-2 p-2 shadow-sm">
                             <a href="{% url 'taskdetail' task.id %}" style="font-weight:bold ;">{{ task.title }}</a>
                             <p class="card-text small">{{ task.description }}</p>
-                            <p class="text-muted small">Due: {{ task.due_date }}</p>
+                            <p class="text-muted small">Deadline: {{ task.due_date }}</p>
                         </div>
                     {% empty %}
                         <p class="text-center text-muted">No tasks in progress</p>
@@ -40,19 +67,19 @@
                 
             </div>
         </div>
-
         <div class="col-md-4">
-            <div class="card border-success shadow">
-                <div class="card-header bg-success text-white">Completed Tasks</div>
+            <div class="card border-danger shadow">
+                <div class="card-header bg-danger text-white">Overdue Tasks</div>
                 <div class="card-body">
-                    {% for task in tasks_completed %}
+                    {% for task in tasks_overdue %}
                         <div class="card mb-2 p-2 shadow-sm">
                             <a href="{% url 'taskdetail' task.id %}" style="font-weight:bold ;">{{ task.title }}</a>
                             <p class="card-text small">{{ task.description }}</p>
-                            <p class="text-muted small">Completed on: {{ task.completed_date }}</p>
+                            <p class="text-muted small">Status: {{ task.status }}</p>
+                            <p class="text-muted small"> Deadline: {{ task.due_date }}</p>
                         </div>
                     {% empty %}
-                        <p class="text-center text-muted">No completed tasks</p>
+                        <p class="text-center text-muted">Congratulations. No overdue tasks.</p>
                     {% endfor %}
                 </div>
             </div>
@@ -66,51 +93,25 @@
         </button>
     </div>-->
 
-    <div class="container mt-4 bg-primary">
-        <h5 class="text-center text-white">Tasks Due Today</h5>
     
-        <table class="table table-hover table-striped">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Status</th>
-                    <th>Details</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for task in tasks_today %}
-                    <tr>
-                        <td><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></td>
-                        <td>{{ task.status }}</td>
-                        <td>{{ task.description }}</td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="3" class="text-center">No tasks due today.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <p>.</p>
-    </div>
 
-    <div class="container mt-4" style="background-color:red;">
-        <h5 class="text-center text-white">Overdue Tasks</h5>
+    <div class="card mt-4 bg-success">
+        <h5 class="text-center text-white">Completed Tasks</h5>
     
         <table class="table table-hover table-striped">
             <thead>
                 <tr>
                     <th>Title</th>
-                    <th>Status</th>
-                    <th>Details</th>
+                    <th>Description</th>
+                    <th>Due date</th>
                 </tr>
             </thead>
             <tbody>
-                {% for task in tasks_overdue %}
+                {% for task in tasks_completed %}
                     <tr>
-                        <td><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></td>
-                        <td>{{ task.status }}</td>
+                        <td><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></td>               
                         <td>{{ task.description }}</td>
+                        <td>{{ task.due_date }}</td>
                     </tr>
                 {% empty %}
                     <tr>
@@ -119,7 +120,6 @@
                 {% endfor %}
             </tbody>
         </table>
-        <p>.</p>
     </div>
 
     <!-- Create Task Modal -->
@@ -134,8 +134,7 @@
                     <form id="taskForm" method="POST">
                         {% csrf_token %}
                         <p><strong>Task Title:</strong> {{ form.title }}</p>
-                        <p><strong>Description:</strong> {{ form.description }}</p>                       
-                        <p><strong>Status:</strong> {{ form.status }}</p>                                  
+                        <p><strong>Description:</strong> {{ form.description }}</p>                                                         
                         <p><strong>Due By</strong> {{ form.due_date }}</p>
                         <button type="submit" class="btn btn-dark w-100 mt-2">Add Task</button>
                     </form>

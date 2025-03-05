@@ -22,7 +22,16 @@ class TaskForm(forms.ModelForm):
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
-        fields = ["name", "description"]
+        fields = ["name", "description", "due_date"]
+
+        widgets = {
+            "due_date": forms.DateTimeInput(attrs={"type": "datetime-local"})
+        }
+    def clean_due_date(self):
+        due_date = self.cleaned_data.get("due_date")
+        if due_date and due_date < now():
+            raise forms.ValidationError("Due date and time cannot be in the past. Please select a valid date")
+        return due_date
         
 class AssignTaskForm(forms.ModelForm):
     assigned_to = forms.ModelChoiceField(queryset=User.objects.all(), label="Reassign Task To")

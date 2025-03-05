@@ -24,6 +24,7 @@ def employee_dashboard(request):
         form = TaskForm(request.POST)
         if form.is_valid():
             task = form.save(commit=False)
+            task.status = "pending"
             task.assigned_to = request.user  # Assign task to logged-in user
             task.assigned_by = request.user
             task.save()

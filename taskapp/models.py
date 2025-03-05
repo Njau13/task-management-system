@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.utils.timezone import now
+from datetime import timedelta
 
 User = get_user_model()
 
@@ -8,6 +10,7 @@ class Project(models.Model):
     description = models.TextField()
     manager = models.ForeignKey(User, on_delete=models.CASCADE, related_name="managed_projects")
     created_at = models.DateTimeField(auto_now_add=True)
+    due_date = models.DateTimeField(default=now() + timedelta(days=7))
     status = models.CharField(max_length=20, choices=[("pending", "Pending"), ("in_progress", "In Progress"), ("completed", "Completed")])
 
     def progress(self):

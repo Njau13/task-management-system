@@ -7,7 +7,6 @@ a:hover {
 }
 body {
     display: flex;
-    padding-top: 50px;
 }
 
 .table {
@@ -18,12 +17,10 @@ body {
     height: 100vh;
     background: #343a40;
     color: white;
-    padding-top: 20px;
     position: fixed;
 }
 .sidebar a {
     color: white;
-    padding: 10px;
     display: block;
     text-decoration: none;
 }

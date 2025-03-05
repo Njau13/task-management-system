@@ -2,6 +2,7 @@
 
 {% block content %}
 <div class="container mt-4">
+    <h1>Assign the task</h1>
     <h2>{{ task.title }}</h2>
     <p><strong>Assigned To:</strong> {{ task.assigned_to }}</p>
     <p><strong>Assigned By:</strong> {{ task.assigned_by.username|default:"Unknown" }}</p>
