@@ -27,17 +27,19 @@
             </li>
             {% else %}
             <li class="nav-item">
-                <a href="{% url 'manager_dashboard' %}" class="nav-link text-white">Projects</a>
+                <a href="{% url 'manager_dashboard' %}" class="nav-link text-white">Dashboard</a>
             </li>
             {% endif %}
             <li class="nav-item">
                 <a href="{% url 'marketplace' %}" class="nav-link text-white">Market Place</a>
             </li>
-            <li class="nav-item">
-                <a data-bs-toggle="modal" data-bs-target="#createTaskModal" class="nav-link text-danger">
-                    + Add Task
-                </a>
-            </li>
+            <!-- Button to open modal -->
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#todoModal">
+                My To-Do List
+            </button>
+
+
+
         </ul>
         <!-- Log out at the bottom -->
         <a href="{% url 'logout' %}" class="nav-link text-danger mt-auto">Log out</a>

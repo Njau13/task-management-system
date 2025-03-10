@@ -83,6 +83,60 @@
 
     </tbody>
 </table>
+<h2 class="text-center">Projects</h2>
+<div class="container">
+    <div class="d-flex">
+        <h3>Ongoing Projects</h3>
+        <a href="{% url 'create_project' %}" class="btn btn-primary ms-auto" >Start New Project</a>
+    </div>
+    
+    <div class="d-flex flex-wrap">
+        {% for project in projects %}
+            <div class="card m-2 border-primary shadow" style="width: 20rem;">
+                <div class="card-body">
+                    <div class="card-header">
+                        <a href="{% url 'project_detail' project.id %}" style="font-weight: bold;">{{ project.name }}</a>
+                    </div>
+                        <p><a href="{% url 'project_detail' project.id %}">{{ project.description }}</a></p>
+                </div>
+            </div>
+        {%empty%}
+            <div class="card-body">
+                <h5 class="card-title">No on-going projects</h5>
+            </div>
+        {% endfor %}
+    </div>
+      
+
+
+
+ <!-- Create Task Modal -->
+ <div class="modal fade" id="createTaskModal" tabindex="-1" aria-labelledby="createTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createTaskModalLabel">Create New Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm" method="POST">
+                    {% csrf_token %}
+                    <p><strong>Task Title:</strong> {{ form.title }}</p>
+                    <p><strong>Description:</strong> {{ form.description }}</p>
+                    <p><strong>Assigned To:</strong> {{ form.assigned_to }}</p>
+                    <p><strong>Status:</strong> {{ form.status }}</p>           
+                    <p><strong>Project</strong> {{ form.project }}</p>
+                    <p><strong>Due By</strong> {{ form.due_date }}</p>
+
+                    <button type="submit" class="btn btn-dark w-100 mt-2">Add Task</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
 <a href="{% url 'createtask' %}">Create New Task</a>    
         
         <ul>
@@ -110,4 +164,130 @@
                 {% endif %}
             {% endfor %}
         </ul>
+{% endblock %}
+{% extends "index.html" %}
+{% block content %}
+
+    
+<h2 class="text-center">Projects</h2>
+<div class="container">
+    <div class="d-flex">
+        <h3>Ongoing Projects</h3>
+        <a href="{% url 'create_project' %}" class="btn btn-primary ms-auto" >Start New Project</a>
+    </div>
+    
+    <div class="d-flex flex-wrap">
+        {% for project in projects %}
+            <div class="card m-2 border-primary shadow" style="width: 20rem;">
+                <div class="card-body">
+                    <div class="card-header">
+                        <a href="{% url 'project_detail' project.id %}" style="font-weight: bold;">{{ project.name }}</a>
+                    </div>
+                        <p><a href="{% url 'project_detail' project.id %}">{{ project.description }}</a></p>
+                </div>
+            </div>
+        {%empty%}
+            <div class="card-body">
+                <h5 class="card-title">No on-going projects</h5>
+            </div>
+        {% endfor %}
+    </div>
+      
+
+
+
+ <!-- Create Task Modal -->
+ <div class="modal fade" id="createTaskModal" tabindex="-1" aria-labelledby="createTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createTaskModalLabel">Create New Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm" method="POST">
+                    {% csrf_token %}
+                    <p><strong>Task Title:</strong> {{ form.title }}</p>
+                    <p><strong>Description:</strong> {{ form.description }}</p>
+                    <p><strong>Assigned To:</strong> {{ form.assigned_to }}</p>
+                    <p><strong>Status:</strong> {{ form.status }}</p>           
+                    <p><strong>Project</strong> {{ form.project }}</p>
+                    <p><strong>Due By</strong> {{ form.due_date }}</p>
+
+                    <button type="submit" class="btn btn-dark w-100 mt-2">Add Task</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+login_required
+def assign_task(request, task_id):
+    task = get_object_or_404(Task, id=task_id)  # Get the task
+    subtasks = task.subtasks.all()  # Fetch subtasks
+
+    subtask_form = SubTaskForm()
+    assign_form = AssignTaskForm(instance=task)
+
+    if request.method == "POST":
+        if "add_subtask" in request.POST:  # Check if subtask form is submitted
+            subtask_form = SubTaskForm(request.POST)
+            if subtask_form.is_valid():
+                subtask = subtask_form.save(commit=False)
+                subtask.due_date = task.due_date
+                subtask.parent_task = task  # Assign parent task
+                subtask.assigned_to = task.assigned_to  # Assign to same user
+                subtask.save()
+                return redirect("assign_task", task_id=task_id)  # Stay on the same page
+            else:
+                print(subtask_form.errors)     
+
+        elif "assign_task" in request.POST:  # Check if assign form is submitted
+            assign_form = AssignTaskForm(request.POST, instance=task)
+            if assign_form.is_valid():
+                assign_form.save()  # Save updated assignment
+                return redirect("project_detail", project_id=task.project.id)  # Redirect after update
+            else:
+                print(assign_form.errors) 
+            <!-- Subtasks Section -->
+            <div class="card border-0 p-3 mb-4">
+                <h4 class="text-success">Subtasks</h4>
+                {% if subtasks %}
+                    <ul class="list-group">
+                        {% for subtask in subtasks %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ subtask.title }} - {{ subtask.status }}</span>
+                                <span class="badge {% if subtask.status == 'pending' %}bg-warning{% else %}bg-success{% endif %}">
+                                    {{ subtask.status }}
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">No subtasks yet.</p>
+                {% endif %}
+            </div>
+    
+            <!-- Form to Add Subtask -->
+            <div class="card border-0 p-3">
+                <h4 class="text-success">Add a Subtask</h4>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ subtask_form.as_p }}
+                    </div>
+                    <button type="submit" class="btn btn-success">Add Subtask</button>
+                </form>
+            </div>
+            if request.method == "POST":
+            form = TaskForm(request.POST)
+            if form.is_valid():
+                task = form.save(commit=False)
+                task.status = "pending"
+                task.assigned_to = request.user  # Assign task to logged-in user
+                task.assigned_by = request.user
+                task.save()
+                return redirect("employee_dashboard")  # Refresh the page after adding
+        else:
+            form = TaskForm()
+
 {% endblock %}

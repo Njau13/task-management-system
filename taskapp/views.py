@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Project, Task
-from .forms import  ProjectForm, TaskForm, AssignTaskForm
+from .models import Project, Task, ToDoItem
+from .forms import  ProjectForm, TaskForm, AssignTaskForm, SubTaskForm, RequestUpdateForm, ProvideUpdateForm 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 #from django.views.generic import DetailView
@@ -8,6 +8,8 @@ from django.views import View
 from django.db.models import Q
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware, localtime
+from django.urls import reverse
+from django.http import JsonResponse
 
 User = get_user_model()
 
@@ -20,26 +22,41 @@ def employee_dashboard(request):
     tasks_today =Task.objects.filter(assigned_to=request.user, due_date__date=today) #Uses .date() to match only the date part of due_date (ignores time).
     overdue = localtime().date()
     tasks_overdue= Task.objects.filter(assigned_to=request.user, due_date__date__lt=overdue).exclude(status="completed") #lt means less than today
-    if request.method == "POST":
-        form = TaskForm(request.POST)
-        if form.is_valid():
-            task = form.save(commit=False)
-            task.status = "pending"
-            task.assigned_to = request.user  # Assign task to logged-in user
-            task.assigned_by = request.user
-            task.save()
-            return redirect("employee_dashboard")  # Refresh the page after adding
-    else:
-        form = TaskForm()
+    total_tasks = Task.objects.filter(assigned_to=request.user).count()
+    pending_tasks = Task.objects.filter(assigned_to=request.user, status="pending").count()
+    due_today = Task.objects.filter(assigned_to=request.user, due_date__date=today).count()
+    past_due = Task.objects.filter(assigned_to=request.user, due_date__date__lt=today).exclude(status="completed").count()
+    todo_items = ToDoItem.objects.filter(user=request.user)
 
+   
     return render(request, "dashboard.html", {
         "tasks_pending": tasks_pending,
         "tasks_completed": tasks_completed,
         "tasks_in_progress": tasks_in_progress,
         "tasks_today":tasks_today,
         "tasks_overdue":tasks_overdue,
-        "form": form,
+        "total_tasks": total_tasks,
+        "pending_tasks": pending_tasks,
+        "due_today": due_today,
+        "past_due": past_due,
+        "todo_items": todo_items,
     })
+    
+@login_required
+def add_todo(request):
+    if request.method == "POST":
+        task_text = request.POST.get("task")
+        ToDoItem.objects.create(user=request.user, task=task_text)
+        return JsonResponse({"success": True})
+    return JsonResponse({"success": False})
+
+@login_required
+def update_todo_status(request, task_id):
+    task = ToDoItem.objects.get(id=task_id, user=request.user)
+    task.is_completed = not task.is_completed
+    task.save()
+    return JsonResponse({"success": True})
+
 
 @login_required
 def marketplace(request):
@@ -70,6 +87,7 @@ def takeon(request, task_id):
 
 @login_required
 def manager_dashboard(request):
+    tasks_assigned=Task.objects.filter(assigned_by=request.user).exclude(assigned_to=request.user)
     projects = Project.objects.filter(manager=request.user)
     if request.method == "POST":
         form = TaskForm(request.POST)
@@ -80,7 +98,7 @@ def manager_dashboard(request):
             return redirect("manager_dashboard")  # Refresh the page after adding
     else:
         form = TaskForm()
-    return render(request, "managerdashboard.html", {"projects": projects, "form": form, })
+    return render(request, "projects.html", {"projects": projects, "form": form,"tasks_assigned": tasks_assigned, })
 
 @login_required
 def project_detail(request, project_id):
@@ -113,6 +131,18 @@ def project_detail(request, project_id):
 @login_required
 def assign_task(request, task_id):
     task = get_object_or_404(Task, id=task_id)  # Get the task
+    subtasks = task.subtasks.all()  # Fetch subtasks
+    if request.method == "POST":
+        form = SubTaskForm(request.POST)
+        if form.is_valid():
+            subtask = form.save(commit=False)
+            subtask.parent_task = task  # Assign parent task
+            subtask.assigned_to = task.assigned_to  # Assign to same user
+            subtask.save()
+            return redirect('task_detail', task_id=task_id)
+    else:
+        form = SubTaskForm()
+
     if request.method == "POST":
         form = AssignTaskForm(request.POST, instance=task)
         if form.is_valid():
@@ -121,7 +151,7 @@ def assign_task(request, task_id):
     else:
         form = AssignTaskForm(instance=task)
 
-    return render(request, "assigntask.html", {"form": form, "task": task})
+    return render(request, "assigntask.html", {'subtasks': subtasks,"form": form, "task": task})
 
 @login_required
 def reassign_task(request, task_id ):
@@ -258,6 +288,51 @@ def create_task(request):
             form = TaskForm()        
     return render(request, "createtask.html", {"form": form})
 
+
+@login_required
+def request_update(request, task_id):
+    """Manager requests an update from the assigned user."""
+    task = get_object_or_404(Task, id=task_id)
+
+    if request.user != task.assigned_by:
+        return redirect("employee_dashboard")  # Only the manager can request updates
+
+    task.update_requested = True
+    task.save()
+    
+    return redirect(reverse("taskdetail", kwargs={"task_id": task_id}))
+
+
+
+@login_required
+def provide_update(request, task_id):
+    """User provides an update for the requested task."""
+    task = get_object_or_404(Task, id=task_id)
+
+    if request.user != task.assigned_to:
+        return redirect("employee_dashboard")  # Only the assigned user can respond
+
+    if request.method == "POST":
+        form = ProvideUpdateForm(request.POST, instance=task)
+        if form.is_valid():
+            task.update_requested = False  # Reset request after response
+            form.save()
+            return redirect("task_detail", task_id=task_id)
+    else:
+        form = ProvideUpdateForm(instance=task)
+
+    return render(request, "provide_update.html", {"task": task, "form": form})
+
+def task_detail(request, task_id):
+    task = get_object_or_404(Task, id=task_id)
+    assign_form = ProvideUpdateForm(request.POST or None, instance=task)  
+
+    if request.method == "POST" and assign_form.is_valid():
+        assign_form.save()
+        return redirect("employee_dashboard")  
+
+    return render(request, "task_detail.html", {"task": task, "assign_form": assign_form})
+    
 class TaskDetailView(View):
     def get(self, request, pk):
         task = Task.objects.get(id=pk)

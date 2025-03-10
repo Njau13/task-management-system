@@ -2,7 +2,7 @@
 {% block content %}
 
     
-<h2 class="text-center">Projects</h2>
+
 <div class="container">
     <div class="d-flex">
         <h3>Ongoing Projects</h3>
@@ -11,9 +11,9 @@
     
     <div class="d-flex flex-wrap">
         {% for project in projects %}
-            <div class="card m-2 border-primary shadow" style="width: 20rem;">
+            <div class="card m-2 border-dark shadow" style="width: 20rem;">
                 <div class="card-body">
-                    <div class="card-header">
+                    <div class="card-header bg-dark text-white">
                         <a href="{% url 'project_detail' project.id %}" style="font-weight: bold;">{{ project.name }}</a>
                     </div>
                         <p><a href="{% url 'project_detail' project.id %}">{{ project.description }}</a></p>
@@ -26,7 +26,35 @@
         {% endfor %}
     </div>
       
-
+    <div class="card border-dark shadow mt-4 mb-4">
+        <div class="card-header text-center bg-dark text-white">Assigned Tasks</div>
+    
+        <table class="table table-hover table-striped p-3">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Due Date</th>
+                    <th>Assigned To</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks_assigned %}
+                    <tr>
+                        <td> <a href="{% url 'assigntask' task.id %}">{{ task.title }}</a></td>
+                        <td>{{ task.status }}</td>
+                        <td>{{ task.due_date }} </td>
+                        <td>{{ task.assigned_to }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center">No tasks assigned.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+    </div>
 
 
  <!-- Create Task Modal -->
@@ -43,7 +71,7 @@
                     <p><strong>Task Title:</strong> {{ form.title }}</p>
                     <p><strong>Description:</strong> {{ form.description }}</p>
                     <p><strong>Assigned To:</strong> {{ form.assigned_to }}</p>
-                    <p><strong>Status:</strong> {{ form.status }}</p>           
+                    <p><strong>Priority</strong>{{ form.priority }} </p>          
                     <p><strong>Project</strong> {{ form.project }}</p>
                     <p><strong>Due By</strong> {{ form.due_date }}</p>
 

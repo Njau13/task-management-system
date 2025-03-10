@@ -5,7 +5,7 @@ from django.utils.timezone import now
 class TaskForm(forms.ModelForm):
     class Meta:
         model = Task
-        fields = ["title", "description", "status", "due_date",  "project", "assigned_to"  ]
+        fields = ["title", "description", "status", "priority", "due_date",  "project", "assigned_to"  ]
         widgets = {
             "due_date": forms.DateTimeInput(attrs={"type": "datetime-local"})
         }
@@ -39,3 +39,23 @@ class AssignTaskForm(forms.ModelForm):
     class Meta:
         model = Task
         fields = ['assigned_to']
+
+
+class SubTaskForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = ['title', 'description']
+
+class RequestUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = []  # No input needed, just toggles `update_requested`
+
+
+class ProvideUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = ['status', 'update_response']
+        widgets = {
+            'update_response': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Provide an update...'}),
+        }

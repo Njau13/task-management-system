@@ -1,6 +1,43 @@
 {% extends "index.html" %}  
 
 {% block content %}
+<div class="container mt-4">
+        <h2 class="mb-4">Tasks Summary</h2>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title">Total Assigned</h5>
+                        <h6 class="card-text">{{ total_tasks }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title">Total Pending</h5>
+                        <h6 class="card-text">{{ pending_tasks }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title">Due Today</h5>
+                        <h6 class="card-text">{{ due_today }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-danger mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title">Overdue</h5>
+                        <h6 class="card-text">{{ past_due }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <div class="card border-dark shadow mt-4 mb-4">
     <div class="card-header text-center bg-dark text-white">Tasks Due today</div>
@@ -10,6 +47,7 @@
             <tr>
                 <th>Title</th>
                 <th>Status</th>
+                <th>Priority</th>
                 <th>Details</th>
             </tr>
         </thead>
@@ -18,6 +56,7 @@
                 <tr>
                     <td><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></td>
                     <td>{{ task.status }}</td>
+                    <td>{{ task.priority }}</td>
                     <td>{{ task.description }}</td>
                 </tr>
             {% empty %}
@@ -40,6 +79,7 @@
                         <div class="card mb-2 p-2 shadow-sm">
                             <a href="{% url 'taskdetail' task.id %}" style="font-weight:bold ;">{{ task.title }}</a>
                             <p class="card-text small">{{ task.description }}</p>
+                            <p class="card-text small">Priority: {{ task.priority }}</p>
                             <p class="text-muted small">Deadline: {{ task.due_date }}</p>
                         </div>
                     {% empty %}
@@ -57,7 +97,8 @@
                     {% for task in tasks_in_progress %}
                         <div class="card mb-2 p-2 shadow-sm">
                             <a href="{% url 'taskdetail' task.id %}" style="font-weight:bold ;">{{ task.title }}</a>
-                            <p class="card-text small">{{ task.description }}</p>
+                            <p class="text-muted small">{{ task.description }}</p>
+                            <p class="card-text small">Priority: {{ task.priority }}</p>
                             <p class="text-muted small">Deadline: {{ task.due_date }}</p>
                         </div>
                     {% empty %}
@@ -76,6 +117,7 @@
                             <a href="{% url 'taskdetail' task.id %}" style="font-weight:bold ;">{{ task.title }}</a>
                             <p class="card-text small">{{ task.description }}</p>
                             <p class="text-muted small">Status: {{ task.status }}</p>
+                            <p class="card-text small">Priority: {{ task.priority }}</p>
                             <p class="text-muted small"> Deadline: {{ task.due_date }}</p>
                         </div>
                     {% empty %}
@@ -115,13 +157,37 @@
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="3" class="text-center">Congratulations. No overdue tasks.</td>
+                        <td colspan="3" class="text-center">No completed tasks.</td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
+
+    <!-- To-Do List Modal -->
+<div class="modal fade" id="todoModal" tabindex="-1" aria-labelledby="todoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="todoModalLabel">My To-Do List</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul id="todo-list" class="list-group">
+            {% for task in tasks %}
+            <li class="list-group-item">
+              <input type="checkbox" class="task-checkbox" data-id="{{ task.id }}" {% if task.is_completed %}checked{% endif %}>
+              <span class="{% if task.is_completed %}text-decoration-line-through{% endif %}">{{ task.task }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+          <input type="text" id="new-task" class="form-control mt-2" placeholder="New task">
+          <button class="btn btn-success mt-2" id="add-task">Add Task</button>
+        </div>
+      </div>
+    </div>
+  </div>
     <!-- Create Task Modal -->
     <div class="modal fade" id="createTaskModal" tabindex="-1" aria-labelledby="createTaskModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -136,12 +202,84 @@
                         <p><strong>Task Title:</strong> {{ form.title }}</p>
                         <p><strong>Description:</strong> {{ form.description }}</p>                                                         
                         <p><strong>Due By</strong> {{ form.due_date }}</p>
+                        <p><strong>Priority</strong> {{ form.priority }}</p>
                         <button type="submit" class="btn btn-dark w-100 mt-2">Add Task</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- To-Do List Modal -->
+<div class="modal fade" id="todoModal" tabindex="-1" aria-labelledby="todoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="todoModalLabel">My To-Do List</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul id="todo-list" class="list-group">
+            {% for task in todo_items %}
+            <li class="list-group-item">
+              <input type="checkbox" class="task-checkbox" data-id="{{ task.id }}" {% if task.is_completed %}checked{% endif %}>
+              <span class="{% if task.is_completed %}text-decoration-line-through{% endif %}">{{ task.task }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+          <input type="text" id="new-task" class="form-control mt-2" placeholder="New task">
+          <button class="btn btn-success mt-2" id="add-task">Add Task</button>
+        </div>
+      </div>
+    </div>
+  </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            document.getElementById("add-task").addEventListener("click", function() {
+                let taskText = document.getElementById("new-task").value;
+                if (taskText.trim() !== "") {
+                    fetch("/todo-list/", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                            "X-CSRFToken": getCSRFToken()
+                        },
+                        body: "task=" + encodeURIComponent(taskText)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) location.reload();
+                    });
+                }
+            });
+
+            document.querySelectorAll(".task-checkbox").forEach(function(checkbox) {
+                checkbox.addEventListener("change", function() {
+                    let taskId = this.getAttribute("data-id");
+                    fetch(`/update-task-status/${taskId}/`, {
+                        method: "POST",
+                        headers: {
+                            "X-CSRFToken": getCSRFToken()
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) location.reload();
+                    });
+                });
+            });
+        });
+
+        function getCSRFToken() {
+            return document.cookie.split("; ")
+                .find(row => row.startsWith("csrftoken"))
+                ?.split("=")[1];
+        }
+
+    </script>
+
+    
+    
 
 </div>
 {% endblock %}
