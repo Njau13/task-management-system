@@ -1,0 +1,599 @@
+{% extends "index.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Project Overview -->
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">{{ project.name }}</h3>
+                    <span class="badge bg-light text-primary">{{ project.get_priority_display }}</span>
+                </div>
+                <div class="card-body">
+                    <p class="lead">{{ project.description }}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Start Date:</strong> {{ project.start_date|date:"M d, Y" }}</p>
+                            <p><strong>Manager:</strong> {{ project.manager.username }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>End Date:</strong> {{ project.due_date|date:"M d, Y" }}</p>
+                            <p><strong>Status:</strong> {{ project.get_status_display }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Milestones -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Milestones</h4>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for milestone in project.project_milestones.all %}
+                            <div class="milestone-item {% if milestone.completed %}completed{% endif %}">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5>{{ milestone.title }}</h5>
+                                    <div>
+                                        <span class="badge {% if milestone.completed %}bg-success{% else %}bg-warning{% endif %}">
+                                            Due: {{ milestone.due_date|date:"M d, Y" }}
+                                        </span>
+                                        <button class="btn btn-sm btn-primary ms-2" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#createTaskModal"
+                                                data-milestone-id="{{ milestone.id }}"
+                                                data-milestone-title="{{ milestone.title }}">
+                                            Add Task
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="text-muted">{{ milestone.description }}</p>
+                                
+                                <!-- Tasks for this milestone -->
+                                <div class="milestone-tasks mt-3">
+                                    {% for task in milestone.tasks.all %}
+                                        <div class="task-item p-2 border rounded mb-2">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <a href="{% url 'assign_task' task.id %}" class="text-decoration-none">
+                                                    {{ task.title }}
+                                                </a>
+                                                <span class="badge bg-secondary">{{ task.assigned_to|default:"Unassigned" }}</span>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">No milestones defined</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <!-- Project Members -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Team Members</h4>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for member in project.project_members.all %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0">{{ member.user.username }}</h6>
+                                        <small class="text-muted">{{ member.get_role_display }}</small>
+                                    </div>
+                                    <span class="badge bg-primary">{{ member.joined_at|date:"M d" }}</span>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">No team members added</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Progress -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Progress</h4>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Progress Bar -->
+                    <div class="progress mb-4">
+                        <div id="progress-bar" class="progress-bar" role="progressbar" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100">
+                        {{ progress|floatformat:0 }}% Complete
+                        </div>
+                    </div>
+                    <div class="small">
+                        <div class="d-flex justify-content-between">
+                            <span>Tasks Completed: {{ completed_tasks }}</span>
+                            <span>Total Tasks: {{ total_tasks }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Project Management Section -->
+{% if request.user == project.manager %}
+<div class="container mt-4 mb-5">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Project Management</h4>
+        </div>
+        <div class="card-body">
+            <ul class="nav nav-tabs" id="projectManagementTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="milestones-tab" data-bs-toggle="tab" data-bs-target="#milestones" type="button">
+                        Manage Milestones
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="members-tab" data-bs-toggle="tab" data-bs-target="#members" type="button">
+                        Manage Members
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="status-tab" data-bs-toggle="tab" data-bs-target="#status" type="button">
+                        Update Status
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content p-3" id="projectManagementContent">
+                <!-- Milestones Tab -->
+                <div class="tab-pane fade show active" id="milestones">
+                    <form method="POST" action="{% url 'update_project_milestones' project.id %}">
+                        {% csrf_token %}
+                        <div id="milestonesList">
+                            {% for milestone in project.project_milestones.all %}
+                            <div class="milestone-item card mb-3">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4 mb-2">
+                                            <input type="text" class="form-control" name="milestone_titles[]" 
+                                                value="{{ milestone.title }}" placeholder="Milestone Title" required>
+                                            <input type="hidden" name="milestone_ids[]" value="{{ milestone.id }}">
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <input type="date" class="form-control milestone-date" 
+                                                name="milestone_dates[]" value="{{ milestone.due_date|date:'Y-m-d' }}" required>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <select class="form-select" name="milestone_status[]">
+                                                <option value="pending" {% if not milestone.completed %}selected{% endif %}>Pending</option>
+                                                <option value="completed" {% if milestone.completed %}selected{% endif %}>Completed</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-outline-danger remove-milestone">Remove</button>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <textarea class="form-control" name="milestone_descriptions[]" 
+                                            placeholder="Milestone Description" rows="2">{{ milestone.description }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-outline-primary mb-3" id="addMilestone">
+                            + Add New Milestone
+                        </button>
+                        <button type="submit" class="btn btn-primary">Save Milestone Changes</button>
+                    </form>
+                </div>
+
+                <!-- Members Tab -->
+                <div class="tab-pane fade" id="members">
+                    <form method="POST" action="{% url 'update_project_members' project.id %}">
+                        {% csrf_token %}
+                        <div id="membersList">
+                            {% for member in project.project_members.all %}
+                            <div class="member-item card mb-3">
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <select class="form-select" name="member_ids[]" required>
+                                                <option value="">Select Member</option>
+                                                {% for user in available_users %}
+                                                    <option value="{{ user.id }}" 
+                                                        {% if user.id == member.user.id %}selected{% endif %}>
+                                                        {{ user.get_full_name|default:user.username }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <select class="form-select" name="member_roles[]">
+                                                <option value="member" {% if member.role == 'member' %}selected{% endif %}>Team Member</option>
+                                                <option value="leader" {% if member.role == 'leader' %}selected{% endif %}>Team Leader</option>
+                                                <option value="observer" {% if member.role == 'observer' %}selected{% endif %}>Observer</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <button type="button" class="btn btn-danger btn-sm remove-member">Remove Member</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-outline-primary mb-3" id="addMember">
+                            + Add New Member
+                        </button>
+                        <button type="submit" class="btn btn-primary">Save Member Changes</button>
+                    </form>
+                </div>
+
+                <!-- Status Tab -->
+                <div class="tab-pane fade" id="status">
+                    <form method="POST" action="{% url 'update_project_status' project.id %}">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Project Status</label>
+                                <select class="form-select" name="status">
+                                    <option value="planning" {% if project.status == 'planning' %}selected{% endif %}>Planning</option>
+                                    <option value="in_progress" {% if project.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                                    <option value="on_hold" {% if project.status == 'on_hold' %}selected{% endif %}>On Hold</option>
+                                    <option value="completed" {% if project.status == 'completed' %}selected{% endif %}>Completed</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Priority Level</label>
+                                <select class="form-select" name="priority">
+                                    <option value="low" {% if project.priority == 'low' %}selected{% endif %}>Low</option>
+                                    <option value="medium" {% if project.priority == 'medium' %}selected{% endif %}>Medium</option>
+                                    <option value="high" {% if project.priority == 'high' %}selected{% endif %}>High</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Project Status</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.timeline {
+    position: relative;
+    padding: 20px 0;
+}
+
+.milestone-item {
+    padding: 15px;
+    border-left: 3px solid #dee2e6;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.milestone-item::before {
+    content: '';
+    position: absolute;
+    left: -9px;
+    top: 20px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #dee2e6;
+}
+
+.milestone-item.completed {
+    border-left-color: #28a745;
+}
+
+.milestone-item.completed::before {
+    background: #28a745;
+    border-color: #28a745;
+}
+
+.progress {
+    height: 20px;
+}
+
+.progress-bar {
+    background-color: #28a745;
+}
+</style>
+
+<!-- Add this in your template where the messages should appear -->
+{% if messages %}
+<div class="container mt-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Create Task Modal -->
+<div class="modal fade" id="createTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm" method="POST" action="{% url 'create_project_task' project.id %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="milestone_id" id="milestoneIdInput">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Task Title</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="3" required></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Assign To</label>
+                        <select class="form-select" name="assigned_to">
+                            <option value="">Select Team Member</option>
+                            {% for member in project.project_members.all %}
+                                <option value="{{ member.user.id }}">
+                                    {{ member.user.get_full_name|default:member.user.username }} ({{ member.get_role_display }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Due Date</label>
+                            <input type="date" class="form-control" name="due_date" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Priority</label>
+                            <select class="form-select" name="priority">
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Attachments Section -->
+                    <div class="mb-3">
+                        <label class="form-label">Attachments</label>
+                        <input type="file" class="form-control" name="attachments" multiple>
+                    </div>
+
+                    <!-- Subtasks Section -->
+                    <div class="mb-3">
+                        <label class="form-label">Subtasks</label>
+                        <div id="subtasksList">
+                            <div class="subtask-item input-group mb-2">
+                                <input type="text" class="form-control" name="subtasks[]" placeholder="Enter subtask">
+                                <button type="button" class="btn btn-outline-danger remove-subtask">×</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addSubtask">
+                            + Add Another Subtask
+                        </button>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Task</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Convert Django template dates to JavaScript Date objects
+    const projectStartDate = new Date('{{ project.start_date|date:"Y-m-d" }}');
+    const projectEndDate = new Date('{{ project.end_date|date:"Y-m-d" }}');
+
+    function validateMilestoneDate(dateInput) {
+        const selectedDate = new Date(dateInput.value);
+        
+        // Reset time parts to compare just the dates
+        selectedDate.setHours(0, 0, 0, 0);
+        projectStartDate.setHours(0, 0, 0, 0);
+        projectEndDate.setHours(0, 0, 0, 0);
+
+        if (selectedDate < projectStartDate || selectedDate > projectEndDate) {
+            dateInput.setCustomValidity('Due date must be between project start and end dates');
+            return false;
+        }
+        dateInput.setCustomValidity('');
+        return true;
+    }
+
+    // Add date validation to existing milestone dates
+    document.querySelectorAll('.milestone-date').forEach(dateInput => {
+        dateInput.addEventListener('change', function() {
+            validateMilestoneDate(this);
+        });
+    });
+
+    // Milestone template for new additions
+    function createMilestoneTemplate() {
+        const div = document.createElement('div');
+        div.className = 'milestone-item card mb-3';
+        div.innerHTML = `
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <input type="text" class="form-control" name="milestone_titles[]" placeholder="Milestone Title" required>
+                        <input type="hidden" name="milestone_ids[]" value="">
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <input type="date" class="form-control milestone-date" name="milestone_dates[]" 
+                               min="{{ project.start_date|date:'Y-m-d' }}" 
+                               max="{{ project.end_date|date:'Y-m-d' }}" required>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <select class="form-select" name="milestone_status[]">
+                            <option value="pending">Pending</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-danger btn-sm remove-milestone">Remove</button>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <textarea class="form-control" name="milestone_descriptions[]" placeholder="Milestone Description" rows="2"></textarea>
+                </div>
+            </div>
+        `;
+        
+        // Add validation to the new date input
+        const dateInput = div.querySelector('.milestone-date');
+        dateInput.addEventListener('change', function() {
+            validateMilestoneDate(this);
+        });
+        
+        return div;
+    }
+
+    // Member template for new additions
+    function createMemberTemplate() {
+        const div = document.createElement('div');
+        div.className = 'member-item card mb-3';
+        div.innerHTML = `
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <select class="form-select" name="member_ids[]" required>
+                            <option value="">Select Member</option>
+                            {% for user in available_users %}
+                                <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" name="member_roles[]">
+                            <option value="member">Team Member</option>
+                            <option value="leader">Team Leader</option>
+                            <option value="observer">Observer</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-danger btn-sm remove-member">Remove Member</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        return div;
+    }
+
+    // Add new milestone
+    document.getElementById('addMilestone').addEventListener('click', function() {
+        const milestonesList = document.getElementById('milestonesList');
+        milestonesList.appendChild(createMilestoneTemplate());
+    });
+
+    // Add new member
+    document.getElementById('addMember').addEventListener('click', function() {
+        const membersList = document.getElementById('membersList');
+        membersList.appendChild(createMemberTemplate());
+    });
+
+    // Remove milestone
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-milestone')) {
+            if (document.querySelectorAll('.milestone-item').length > 1) {
+                e.target.closest('.milestone-item').remove();
+            } else {
+                alert('At least one milestone is required');
+            }
+        }
+    });
+
+    // Remove member
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-member')) {
+            if (document.querySelectorAll('.member-item').length > 1) {
+                e.target.closest('.member-item').remove();
+            } else {
+                alert('At least one team member is required');
+            }
+        }
+    });
+
+    // Form validation
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            let isValid = true;
+            
+            // Validate milestone dates
+            this.querySelectorAll('.milestone-date').forEach(dateInput => {
+                if (!validateMilestoneDate(dateInput)) {
+                    isValid = false;
+                }
+            });
+
+            if (!isValid) {
+                e.preventDefault();
+                alert('Please correct the milestone dates');
+            }
+        });
+    });
+
+    // Handle milestone task creation
+    const createTaskModal = document.getElementById('createTaskModal');
+    createTaskModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const milestoneId = button.getAttribute('data-milestone-id');
+        const milestoneTitle = button.getAttribute('data-milestone-title');
+        
+        // Set the milestone ID in the form
+        document.getElementById('milestoneIdInput').value = milestoneId;
+        
+        // Update modal title to include milestone
+        this.querySelector('.modal-title').textContent = `Create New Task for ${milestoneTitle}`;
+        
+        // Set minimum date as today
+        const dueDateInput = this.querySelector('input[name="due_date"]');
+        const today = new Date().toISOString().split('T')[0];
+        dueDateInput.min = today;
+    });
+
+    // Subtasks handling
+    const subtasksList = document.getElementById('subtasksList');
+    const addSubtaskBtn = document.getElementById('addSubtask');
+
+    addSubtaskBtn.addEventListener('click', function() {
+        const subtaskItem = document.createElement('div');
+        subtaskItem.className = 'subtask-item input-group mb-2';
+        subtaskItem.innerHTML = `
+            <input type="text" class="form-control" name="subtasks[]" placeholder="Enter subtask">
+            <button type="button" class="btn btn-outline-danger remove-subtask">×</button>
+        `;
+        subtasksList.appendChild(subtaskItem);
+    });
+
+    subtasksList.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-subtask')) {
+            e.target.closest('.subtask-item').remove();
+        }
+    });
+});
+</script>
+{% endblock %}

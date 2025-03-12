@@ -8,9 +8,12 @@ User = get_user_model()
 class Project(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
+    objectives = models.CharField(max_length=255,blank=True)
+    stakeholders = models.EmailField(max_length=255,blank=True)
     manager = models.ForeignKey(User, on_delete=models.CASCADE, related_name="managed_projects")
     created_at = models.DateTimeField(auto_now_add=True)
     due_date = models.DateTimeField()
+    start_date = models.DateTimeField()
     #due_date = models.DateTimeField(default=now() + timedelta(days=7))
     status = models.CharField(max_length=20, choices=[("pending", "Pending"), ("in_progress", "In Progress"), ("completed", "Completed"), ("on hold", "On Hold")])
 
@@ -52,6 +55,13 @@ class Task(models.Model):
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default="medium",blank=True )
     update_requested = models.BooleanField(default=False)  # Manager requests update
     update_response = models.TextField(blank=True, null=True)  # User's response 
+    milestone = models.ForeignKey(
+        'ProjectMilestone', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='tasks'
+    )
     
     def __str__(self):
         return self.title
@@ -73,3 +83,50 @@ class SubTask(models.Model):
 
     def __str__(self):
         return self.title
+
+class ProjectObjective(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_objectives')
+    description = models.TextField()
+    completed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.project.name} - {self.description[:50]}"
+
+class ProjectStakeholder(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_stakeholders')
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.project.name} - {self.name}"
+
+class ProjectMilestone(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_milestones')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    due_date = models.DateField()
+    completed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.project.name} - {self.title}"
+
+class ProjectMember(models.Model):
+    ROLE_CHOICES = (
+        ('member', 'Team Member'),
+        ('leader', 'Team Leader'),
+        ('observer', 'Observer'),
+    )
+    
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_members')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='member')
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('project', 'user')
+
+    def __str__(self):
+        return f"{self.project.name} - {self.user.username} ({self.role})"

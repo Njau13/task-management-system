@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Project, Task ,TaskAttachment ,SubTask
+from .models import Project, Task ,TaskAttachment ,SubTask, ProjectObjective, ProjectStakeholder, ProjectMember, ProjectMilestone
 from .forms import  ProjectForm, TaskForm, AssignTaskForm, SubTaskForm, RequestUpdateForm, ProvideUpdateForm 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
@@ -9,6 +9,10 @@ from django.db.models import Q
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware, localtime
 from django.urls import reverse
+from django.core.mail import send_mail
+from django.contrib import messages
+from django.db.utils import IntegrityError
+from django.http import HttpResponseForbidden
 
 User = get_user_model()
 
@@ -97,7 +101,7 @@ def takeon(request, task_id):
 
 @login_required
 def manager_dashboard(request):
-    tasks_assigned=Task.objects.filter(assigned_by=request.user).exclude(assigned_to=request.user)
+    tasks_assigned=Task.objects.filter(assigned_by=request.user,project__isnull=True ).exclude(assigned_to=request.user)
     projects = Project.objects.filter(manager=request.user)
     if request.method == "POST":
         form = TaskForm(request.POST)
@@ -133,7 +137,9 @@ def manager_dashboard(request):
 
 @login_required
 def project_detail(request, project_id):
-    project = get_object_or_404(Project, id=project_id, manager=request.user)
+    project = get_object_or_404(Project, id=project_id)
+    objectives = project.project_objectives.all()
+    stakeholders = project.project_stakeholders.all()
     tasks = project.tasks.all().order_by("due_date")
     form = TaskForm(request.POST)
 
@@ -206,6 +212,7 @@ def assign_task(request, task_id):
     form = AssignTaskForm(instance=task)
     return render(request, "assigntask.html", {"form": form, "task": task,})
 
+
 @login_required
 def reassign_task(request, task_id ):
     task = get_object_or_404(Task, id=task_id)
@@ -229,38 +236,93 @@ def reassign_task(request, task_id ):
     return render(request, "assigntask.html", {"form": form, "task": task })
 
 @login_required
-def create_project(request):  
+def create_project(request):
     if request.method == "POST":
         form = ProjectForm(request.POST)
-        if form.is_valid():            
+        if form.is_valid():
             project = form.save(commit=False)
             project.manager = request.user
-            project.save()   
-        return redirect("project_detail" ,project_id=project.id)
+            project.save()
+
+            # Handle objectives
+            objectives = request.POST.getlist('objectives[]')
+            for objective in objectives:
+                if objective.strip():  # Only create if not empty
+                    ProjectObjective.objects.create(
+                        project=project,
+                        description=objective.strip()
+                    )
+
+            # Handle stakeholders
+            stakeholders = request.POST.getlist('stakeholders[]')
+            stakeholder_emails = request.POST.getlist('stakeholder_emails[]')
+            
+            for name, email in zip(stakeholders, stakeholder_emails):
+                if name.strip() and email.strip():  # Only create if both fields are filled
+                    ProjectStakeholder.objects.create(
+                        project=project,
+                        name=name.strip(),
+                        email=email.strip()
+                    )
+
+            return redirect('project_detail', project_id=project.id)
     else:
         form = ProjectForm()
-    return render(request, "createproject.html", {"form": form})
+    
+    return render(request, 'createproject.html', {'form': form})
 
 @login_required
-def create_projecttask(request, project_id):
-    project = get_object_or_404(Project, id=project_id,)  # Get the project
-    form = TaskForm(request.POST)
+def create_project_task(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    
+    if request.method == "POST":
+        milestone_id = request.POST.get('milestone_id')
+        
+        # Create the task
+        task = Task.objects.create(
+            project=project,
+            title=request.POST.get('title'),
+            description=request.POST.get('description'),
+            due_date=request.POST.get('due_date'),
+            priority=request.POST.get('priority'),
+            assigned_by=request.user,
+            status='pending'
+        )
 
-    if request.method == "POST"and form.is_valid():
-        #form = TaskForm(request.POST)
-        #if form.is_valid():
-        #form.save()
-        task = form.save(commit=False)
-        task.project = project
-        task.status = "pending"
-        task.assigned_by = request.user  # Set the user who assigned the task
-        task.save()
-        return redirect("create_projecttask", project_id=project.id)
-    else:
-            print(form.errors) 
-    #else:
-        #form = TaskForm()        
-    return render(request, "createprojecttask.html", {"form": form, "project": project})
+        # Set milestone if provided
+        if milestone_id:
+            milestone = get_object_or_404(ProjectMilestone, id=milestone_id)
+            task.milestone = milestone
+            task.save()
+
+        # Set assigned_to if provided
+        assigned_to_id = request.POST.get('assigned_to')
+        if assigned_to_id:
+            task.assigned_to = get_user_model().objects.get(id=assigned_to_id)
+            task.save()
+
+        # Handle attachments
+        files = request.FILES.getlist('attachments')
+        for file in files:
+            TaskAttachment.objects.create(
+                task=task,
+                file=file,
+                uploaded_by=request.user
+            )
+
+        # Handle subtasks
+        subtasks = request.POST.getlist('subtasks[]')
+        for subtask_title in subtasks:
+            if subtask_title.strip():
+                SubTask.objects.create(
+                    parent_task=task,
+                    title=subtask_title.strip()
+                )
+
+        messages.success(request, 'Task created successfully')
+        return redirect('project_details', project_id=project.id)
+
+    return redirect('project_details', project_id=project.id)
 
 @login_required
 def task_list(request):
@@ -402,3 +464,123 @@ class TaskDetailView(View):
 
 def testlist(request):
     return render(request, "tests.html")
+
+@login_required
+def project_details(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    
+    # Calculate project progress
+    total_tasks = project.tasks.count()
+    completed_tasks = project.tasks.filter(status='completed').count()
+    progress = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+    
+    # Get all available users except the project manager
+    available_users = User.objects.exclude(id=project.manager.id)
+    
+    context = {
+        'project': project,
+        'total_tasks': total_tasks,
+        'completed_tasks': completed_tasks,
+        'progress': round(progress, 1),
+        'available_users': available_users,
+    }
+    
+    return render(request, 'project_details.html', context)
+
+@login_required
+def update_project_milestones(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    if request.user != project.manager:
+        return HttpResponseForbidden()
+
+    if request.method == "POST":
+        milestone_ids = request.POST.getlist('milestone_ids[]')
+        milestone_titles = request.POST.getlist('milestone_titles[]')
+        milestone_dates = request.POST.getlist('milestone_dates[]')
+        milestone_descriptions = request.POST.getlist('milestone_descriptions[]')
+        milestone_statuses = request.POST.getlist('milestone_status[]')
+
+        # Remove deleted milestones
+        project.project_milestones.exclude(id__in=[id for id in milestone_ids if id]).delete()
+
+        # Update or create milestones
+        for i, title in enumerate(milestone_titles):
+            if not title.strip():  # Skip empty titles
+                continue
+
+            try:
+                # Convert string to date object
+                due_date = datetime.strptime(milestone_dates[i], '%Y-%m-%d').date()
+                
+                # Compare dates (now all are date objects)
+                if due_date < project.start_date.date() or due_date > project.due_date.date():
+                    messages.error(request, f'Milestone "{title}" due date must be between project start and end dates')
+                    continue
+
+                if milestone_ids[i]:  # Existing milestone
+                    milestone = project.project_milestones.get(id=milestone_ids[i])
+                    milestone.title = title
+                    milestone.due_date = due_date
+                    milestone.description = milestone_descriptions[i]
+                    milestone.completed = milestone_statuses[i] == 'completed'
+                    milestone.save()
+                else:  # New milestone
+                    ProjectMilestone.objects.create(
+                        project=project,
+                        title=title,
+                        due_date=due_date,
+                        description=milestone_descriptions[i],
+                        completed=milestone_statuses[i] == 'completed'
+                    )
+            except ValueError as e:
+                messages.error(request, f'Invalid date format for milestone "{title}"')
+                continue
+
+        messages.success(request, 'Milestones updated successfully')
+        return redirect('project_details', project_id=project.id)
+
+    return redirect('project_details', project_id=project.id)
+
+@login_required
+def update_project_members(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    if request.user != project.manager:
+        return HttpResponseForbidden()
+
+    if request.method == "POST":
+        member_ids = request.POST.getlist('member_ids[]')
+        member_roles = request.POST.getlist('member_roles[]')
+
+        # Remove all current members
+        project.project_members.all().delete()
+
+        # Add new/updated members
+        for user_id, role in zip(member_ids, member_roles):
+            if user_id:
+                try:
+                    ProjectMember.objects.create(
+                        project=project,
+                        user_id=user_id,
+                        role=role
+                    )
+                except IntegrityError:
+                    messages.error(request, f'User is already a member of the project')
+                    continue
+
+        messages.success(request, 'Team members updated successfully')
+        return redirect('project_details', project_id=project.id)
+
+    return redirect('project_details', project_id=project.id)
+
+@login_required
+def update_project_status(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    if request.user != project.manager:
+        return redirect('project_details', project_id=project_id)
+
+    if request.method == "POST":
+        project.status = request.POST.get('status')
+        project.priority = request.POST.get('priority')
+        project.save()
+
+    return redirect('project_details', project_id=project_id)

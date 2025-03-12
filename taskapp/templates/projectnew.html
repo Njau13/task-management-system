@@ -12,12 +12,11 @@
     <div class="d-flex flex-wrap">
         {% for project in projects %}
             <div class="card m-2 border-dark shadow" style="width: 20rem;">
-                <div class="card-header bg-dark text-white">
-                    <a href="{% url 'project_detail' project.id %}" style="font-weight: bold;">{{ project.name }}</a>
-                </div>
                 <div class="card-body">
-                        <p><a href="{% url 'project_detail' project.id %}" class="card-text small">{{ project.description }}</a></p>
-                        <p class="card-text small">{{ project.due_date }}</p>
+                    <div class="card-header bg-dark text-white">
+                        <a href="{% url 'project_detail' project.id %}" style="font-weight: bold;">{{ project.name }}</a>
+                    </div>
+                        <p><a href="{% url 'project_detail' project.id %}">{{ project.description }}</a></p>
                 </div>
             </div>
         {%empty%}
@@ -26,14 +25,6 @@
             </div>
         {% endfor %}
     </div>
-    <div class="d-flex">
-        <h3>Assigned Tasks</h3>
-        
-        <a data-bs-toggle="modal" data-bs-target="#createTaskModal" class="btn btn-primary ms-auto">
-            Add Task
-        </a>
-    </div>
-    
       
     <div class="card border-dark shadow mt-4 mb-4">
         <div class="card-header text-center bg-dark text-white">Assigned Tasks</div>
@@ -50,7 +41,7 @@
             <tbody>
                 {% for task in tasks_assigned %}
                     <tr>
-                        <td> <a href="{% url 'assign_task' task.id %}" style="font-weight: bold;">{{ task.title }}</a></td>
+                        <td> <a href="{% url 'assign_task' task.id %}">{{ task.title }}</a></td>
                         <td>{{ task.status }}</td>
                         <td>{{ task.due_date }} </td>
                         <td>{{ task.assigned_to }}</td>

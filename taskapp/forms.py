@@ -22,15 +22,29 @@ class TaskForm(forms.ModelForm):
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
-        fields = ["name", "description", "due_date"]
+        fields = ["name", "description", "objectives","due_date","stakeholders", "start_date" ]
 
         widgets = {
-            "due_date": forms.DateTimeInput(attrs={"type": "datetime-local"})
+            "due_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "start_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
         }
+    
+    def clean_start_date(self):
+        start_date = self.cleaned_data.get("start_date")
+        if start_date and start_date < now():
+            raise forms.ValidationError("Due date and time cannot be in the past. Please select a valid date")
+        return start_date
+
     def clean_due_date(self):
         due_date = self.cleaned_data.get("due_date")
+        start_date = self.cleaned_data.get("start_date")
+
         if due_date and due_date < now():
-            raise forms.ValidationError("Due date and time cannot be in the past. Please select a valid date")
+            raise forms.ValidationError("Due date and time cannot be in the past. Please select a valid date.")
+
+        if start_date and due_date and due_date < start_date:
+            raise forms.ValidationError("Due date cannot be before the start date.")
+
         return due_date
         
 class AssignTaskForm(forms.ModelForm):

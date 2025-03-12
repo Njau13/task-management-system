@@ -1,22 +1,189 @@
 {% extends "index.html" %}
 {% block content %}
 <div class="container mt-5">
-    <h2>Create a New Project</h2>
-    <form method="post">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label for="id_name" class="form-label">Project Name</label>
-            {{ form.name }}
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Create New Project</h3>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Project Name -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Project Name</label>
+                            {{ form.name }}
+                        </div>
+
+                        <!-- Project Description -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Description</label>
+                            {{ form.description }}
+                        </div>
+
+                        <!-- Project Timeline -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Start Date</label>
+                                {{ form.start_date }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">End Date</label>
+                                {{ form.due_date }}
+                            </div>
+                        </div>
+
+                        <!-- Project Objectives -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Project Objectives</label>
+                            <div id="objectivesList">
+                                <div class="objective-item input-group mb-2">
+                                    <input type="text" class="form-control" name="objectives[]" placeholder="Enter project objective">
+                                    <button type="button" class="btn btn-outline-danger remove-objective">×</button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addObjective">
+                                + Add Another Objective
+                            </button>
+                        </div>
+
+                        <!-- Project Stakeholders -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Project Stakeholders</label>
+                            <div id="stakeholdersList">
+                                <div class="stakeholder-item input-group mb-2">
+                                    <input type="text" class="form-control" name="stakeholders[]" placeholder="Stakeholder name">
+                                    <input type="email" class="form-control" name="stakeholder_emails[]" placeholder="Stakeholder email">
+                                    <button type="button" class="btn btn-outline-danger remove-stakeholder">×</button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addStakeholder">
+                                + Add Another Stakeholder
+                            </button>
+                        </div>
+
+                        <!-- Project Priority -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Priority</label>
+                            {{ form.priority }}
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">Create Project</button>
+                            <a href="{% url 'manager_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-        <div class="mb-3">
-            <label for="id_description" class="form-label">Description</label>
-            {{ form.description }}
-        </div>
-        <div class="mb-3">
-            <label for="id_due_date" class="form-label">Due Date</label>
-            {{ form.due_date }}
-        </div>
-        <button type="submit" class="btn btn-primary">Create Project</button>
-    </form>
+    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Objectives handling
+    const objectivesList = document.getElementById('objectivesList');
+    const addObjectiveBtn = document.getElementById('addObjective');
+
+    function createObjectiveItem() {
+        const div = document.createElement('div');
+        div.className = 'objective-item input-group mb-2';
+        div.innerHTML = `
+            <input type="text" class="form-control" name="objectives[]" placeholder="Enter project objective">
+            <button type="button" class="btn btn-outline-danger remove-objective">×</button>
+        `;
+        return div;
+    }
+
+    addObjectiveBtn.addEventListener('click', function() {
+        objectivesList.appendChild(createObjectiveItem());
+    });
+
+    objectivesList.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-objective')) {
+            const items = objectivesList.getElementsByClassName('objective-item');
+            if (items.length > 1) {
+                e.target.closest('.objective-item').remove();
+            } else {
+                alert('At least one objective is required');
+            }
+        }
+    });
+
+    // Stakeholders handling
+    const stakeholdersList = document.getElementById('stakeholdersList');
+    const addStakeholderBtn = document.getElementById('addStakeholder');
+
+    function createStakeholderItem() {
+        const div = document.createElement('div');
+        div.className = 'stakeholder-item input-group mb-2';
+        div.innerHTML = `
+            <input type="text" class="form-control" name="stakeholders[]" placeholder="Stakeholder name">
+            <input type="email" class="form-control" name="stakeholder_emails[]" placeholder="Stakeholder email">
+            <button type="button" class="btn btn-outline-danger remove-stakeholder">×</button>
+        `;
+        return div;
+    }
+
+    addStakeholderBtn.addEventListener('click', function() {
+        stakeholdersList.appendChild(createStakeholderItem());
+    });
+
+    stakeholdersList.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-stakeholder')) {
+            const items = stakeholdersList.getElementsByClassName('stakeholder-item');
+            if (items.length > 1) {
+                e.target.closest('.stakeholder-item').remove();
+            } else {
+                alert('At least one stakeholder is required');
+            }
+        }
+    });
+});
+</script>
+
+<style>
+    .form-control, .form-select {
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        border: 1px solid #dee2e6;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .btn {
+        border-radius: 0.5rem;
+    }
+
+    .card {
+        border-radius: 1rem;
+        border: none;
+    }
+
+    .card-header {
+        border-top-left-radius: 1rem !important;
+        border-top-right-radius: 1rem !important;
+    }
+
+    .input-group > .form-control {
+        border-right: none;
+    }
+
+    .input-group > .btn {
+        border-radius: 0 0.5rem 0.5rem 0;
+    }
+
+    .stakeholder-item .form-control:first-child {
+        border-radius: 0.5rem 0 0 0.5rem;
+    }
+
+    .stakeholder-item .form-control:nth-child(2) {
+        border-radius: 0;
+    }
+</style>
 {% endblock %}
