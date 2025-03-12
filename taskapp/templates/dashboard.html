@@ -2,37 +2,36 @@
 
 {% block content %}
 <div class="container mt-4">
-        <h2 class="mb-4">Tasks Summary</h2>
         <div class="row">
             <div class="col-md-3">
                 <div class="card text-white bg-primary mb-3">
                     <div class="card-body">
-                        <h6 class="card-title">Total Assigned</h5>
-                        <h6 class="card-text">{{ total_tasks }}</h2>
+                        <h6 class="card-title">Total Assigned</h6>
+                        <h5 class="card-text">{{ total_tasks }}</h5>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card text-white bg-warning mb-3">
                     <div class="card-body">
-                        <h6 class="card-title">Total Pending</h5>
-                        <h6 class="card-text">{{ pending_tasks }}</h2>
+                        <h6 class="card-title">Total Pending</h6>
+                        <h5 class="card-text">{{ pending_tasks }}</h5>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card text-white bg-success mb-3">
                     <div class="card-body">
-                        <h6 class="card-title">Due Today</h5>
-                        <h6 class="card-text">{{ due_today }}</h2>
+                        <h6 class="card-title">Due Today</h6>
+                        <h5 class="card-text">{{ due_today }}</h5>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card text-white bg-danger mb-3">
                     <div class="card-body">
-                        <h6 class="card-title">Overdue</h5>
-                        <h6 class="card-text">{{ past_due }}</h2>
+                        <h6 class="card-title">Overdue</h6>
+                        <h5 class="card-text">{{ past_due }}</h5>
                     </div>
                 </div>
             </div>
@@ -61,7 +60,7 @@
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="3" class="text-center">No tasks due today.</td>
+                    <td colspan="4" class="text-center">No tasks due today.</td>
                 </tr>
             {% endfor %}
         </tbody>
@@ -164,122 +163,96 @@
         </table>
     </div>
 
-
-    <!-- To-Do List Modal -->
-<div class="modal fade" id="todoModal" tabindex="-1" aria-labelledby="todoModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="todoModalLabel">My To-Do List</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <ul id="todo-list" class="list-group">
-            {% for task in tasks %}
-            <li class="list-group-item">
-              <input type="checkbox" class="task-checkbox" data-id="{{ task.id }}" {% if task.is_completed %}checked{% endif %}>
-              <span class="{% if task.is_completed %}text-decoration-line-through{% endif %}">{{ task.task }}</span>
-            </li>
-            {% endfor %}
-          </ul>
-          <input type="text" id="new-task" class="form-control mt-2" placeholder="New task">
-          <button class="btn btn-success mt-2" id="add-task">Add Task</button>
-        </div>
-      </div>
-    </div>
-  </div>
-    <!-- Create Task Modal -->
+        <!-- Create Task Modal -->
     <div class="modal fade" id="createTaskModal" tabindex="-1" aria-labelledby="createTaskModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="createTaskModalLabel">Create New Task</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="taskForm" method="POST">
+                    <form id="taskForm" method="POST" enctype="multipart/form-data">
                         {% csrf_token %}
-                        <p><strong>Task Title:</strong> {{ form.title }}</p>
-                        <p><strong>Description:</strong> {{ form.description }}</p>                                                         
-                        <p><strong>Due By</strong> {{ form.due_date }}</p>
-                        <p><strong>Priority</strong> {{ form.priority }}</p>
-                        <button type="submit" class="btn btn-dark w-100 mt-2">Add Task</button>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Task Title:</strong></label>
+                                    {{ form.title }}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Description:</strong></label>
+                                    {{ form.description }}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Assigned To:</strong></label>
+                                    {{ form.assigned_to }}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Priority:</strong></label>
+                                    {{ form.priority }}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Due By:</strong></label>
+                                    {{ form.due_date }}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Attachments:</strong></label>
+                                    <div class="input-group mb-3">
+                                        <input type="file" class="form-control" name="attachments" multiple>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Subtasks:</strong></label>
+                                    <div id="subtasksList">
+                                        <div class="subtask-item input-group mb-2">
+                                            <input type="text" class="form-control" name="subtasks[]" placeholder="Enter subtask">
+                                            <button type="button" class="btn btn-outline-danger remove-subtask">×</button>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addSubtask">
+                                        + Add Another Subtask
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-dark w-100 mt-3">Create Task</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- To-Do List Modal -->
-<div class="modal fade" id="todoModal" tabindex="-1" aria-labelledby="todoModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="todoModalLabel">My To-Do List</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <ul id="todo-list" class="list-group">
-            {% for task in todo_items %}
-            <li class="list-group-item">
-              <input type="checkbox" class="task-checkbox" data-id="{{ task.id }}" {% if task.is_completed %}checked{% endif %}>
-              <span class="{% if task.is_completed %}text-decoration-line-through{% endif %}">{{ task.task }}</span>
-            </li>
-            {% endfor %}
-          </ul>
-          <input type="text" id="new-task" class="form-control mt-2" placeholder="New task">
-          <button class="btn btn-success mt-2" id="add-task">Add Task</button>
-        </div>
-      </div>
-    </div>
-  </div>
+    <!-- Add this JavaScript for handling subtasks -->
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            document.getElementById("add-task").addEventListener("click", function() {
-                let taskText = document.getElementById("new-task").value;
-                if (taskText.trim() !== "") {
-                    fetch("/todo-list/", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/x-www-form-urlencoded",
-                            "X-CSRFToken": getCSRFToken()
-                        },
-                        body: "task=" + encodeURIComponent(taskText)
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) location.reload();
-                    });
-                }
-            });
+    document.addEventListener('DOMContentLoaded', function() {
+        const subtasksList = document.getElementById('subtasksList');
+        const addSubtaskBtn = document.getElementById('addSubtask');
 
-            document.querySelectorAll(".task-checkbox").forEach(function(checkbox) {
-                checkbox.addEventListener("change", function() {
-                    let taskId = this.getAttribute("data-id");
-                    fetch(`/update-task-status/${taskId}/`, {
-                        method: "POST",
-                        headers: {
-                            "X-CSRFToken": getCSRFToken()
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) location.reload();
-                    });
-                });
-            });
+        // Add new subtask input
+        addSubtaskBtn.addEventListener('click', function() {
+            const subtaskItem = document.createElement('div');
+            subtaskItem.className = 'subtask-item input-group mb-2';
+            subtaskItem.innerHTML = `
+                <input type="text" class="form-control" name="subtasks[]" placeholder="Enter subtask">
+                <button type="button" class="btn btn-outline-danger remove-subtask">×</button>
+            `;
+            subtasksList.appendChild(subtaskItem);
         });
 
-        function getCSRFToken() {
-            return document.cookie.split("; ")
-                .find(row => row.startsWith("csrftoken"))
-                ?.split("=")[1];
-        }
-
+        // Remove subtask input
+        subtasksList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-subtask')) {
+                e.target.closest('.subtask-item').remove();
+            }
+        });
+    });
     </script>
-
-    
-    
 
 </div>
 {% endblock %}

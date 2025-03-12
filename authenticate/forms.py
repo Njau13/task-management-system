@@ -5,8 +5,8 @@ from .models import CustomUser
 class RegisterForm(UserCreationForm):
     email = forms.EmailField(required=True)
     role = forms.ChoiceField(choices=CustomUser.ROLE_CHOICES, required=True)
-    report_to = forms.ModelChoiceField(queryset=CustomUser.objects.all(), required=False)
+    department = forms.ChoiceField(choices=CustomUser.DEPARTMENT_CHOICES, required=True)
 
     class Meta:
         model = CustomUser
-        fields = ["username", "email", "role","report_to", "password1", "password2"]
+        fields = ["username", "email", "role", "password1", "password2"]

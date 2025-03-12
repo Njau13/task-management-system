@@ -30,10 +30,10 @@
     </tr>
     {% for task in tasks %}
     <tr>
-        <td> <a href="{% url 'assigntask' task.id %}">{{ task.title }}</a></td>
+        <td> <a href="{% url 'assign_task' task.id %}">{{ task.title }}</a></td>
         <td>{{ task.description }}</td>
         <td>{{ task.due_date }}</td>
-        <td><a href="{% url 'assigntask' task.id %}"> {{ task.assigned_to }}</a></td>
+        <td>{{ task.assigned_to }}</a></td>
         <td>{{ task.status }}</td>
         
     </tr>
@@ -42,24 +42,96 @@
 <a href="{% url 'delete_project' project.id %}" class="btn btn-danger"
                     onclick="return confirm('Are you sure you want to delete this project?');">Delete Project</a>
             
-<!-- Create Task Modal -->
-<div class="modal fade" id="createTaskModal" tabindex="-1" aria-labelledby="createTaskModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createTaskModalLabel">Create New Task</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="taskForm" method="POST">
-                    {% csrf_token %}
-                    <p><strong>Task Title:</strong> {{ form.title }}</p>
-                    <p><strong>Description:</strong> {{ form.description }}</p>                                                       
-                    <p><strong>Due By</strong> {{ form.due_date }}</p>
-                    <button type="submit" class="btn btn-dark w-100 mt-2">Add Task</button>
-                </form>
+    <!-- Create Task Modal -->
+    <div class="modal fade" id="createTaskModal" tabindex="-1" aria-labelledby="createTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createTaskModalLabel">Create New Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="taskForm" method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Task Title:</strong></label>
+                                    {{ form.title }}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Description:</strong></label>
+                                    {{ form.description }}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Assigned To:</strong></label>
+                                    {{ form.assigned_to }}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Priority:</strong></label>
+                                    {{ form.priority }}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Due By:</strong></label>
+                                    {{ form.due_date }}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Attachments:</strong></label>
+                                    <div class="input-group mb-3">
+                                        <input type="file" class="form-control" name="attachments" multiple>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Subtasks:</strong></label>
+                                    <div id="subtasksList">
+                                        <div class="subtask-item input-group mb-2">
+                                            <input type="text" class="form-control" name="subtasks[]" placeholder="Enter subtask">
+                                            <button type="button" class="btn btn-outline-danger remove-subtask">×</button>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addSubtask">
+                                        + Add Another Subtask
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-dark w-100 mt-3">Create Task</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Add this JavaScript for handling subtasks -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const subtasksList = document.getElementById('subtasksList');
+        const addSubtaskBtn = document.getElementById('addSubtask');
+
+        // Add new subtask input
+        addSubtaskBtn.addEventListener('click', function() {
+            const subtaskItem = document.createElement('div');
+            subtaskItem.className = 'subtask-item input-group mb-2';
+            subtaskItem.innerHTML = `
+                <input type="text" class="form-control" name="subtasks[]" placeholder="Enter subtask">
+                <button type="button" class="btn btn-outline-danger remove-subtask">×</button>
+            `;
+            subtasksList.appendChild(subtaskItem);
+        });
+
+        // Remove subtask input
+        subtasksList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-subtask')) {
+                e.target.closest('.subtask-item').remove();
+            }
+        });
+    });
+    </script>
+
 </div>
 {% endblock %}

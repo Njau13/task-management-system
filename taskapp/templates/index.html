@@ -21,28 +21,32 @@
             <li class="nav-item">
                 <a href="{% url 'employee_dashboard' %}" class="nav-link text-white">My Tasks</a>
             </li>
-            {% if request.user.role == "employee" %}
+
+            {% if request.user.role == "manager" %}
             <li class="nav-item">
-                <a href="{% url 'employee_dashboard' %}" class="nav-link text-white">My Dashboard</a>
-            </li>
-            {% else %}
-            <li class="nav-item">
-                <a href="{% url 'manager_dashboard' %}" class="nav-link text-white">Dashboard</a>
+                <a href="{% url 'manager_dashboard' %}" class="nav-link text-white">Projects</a>
             </li>
             {% endif %}
+
             <li class="nav-item">
                 <a href="{% url 'marketplace' %}" class="nav-link text-white">Market Place</a>
             </li>
-            <!-- Button to open modal -->
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#todoModal">
-                My To-Do List
-            </button>
 
+            {% if request.user.role == "manager" %}
+            <li class="nav-item">
+                <a data-bs-toggle="modal" data-bs-target="#createTaskModal" class="nav-link text-danger">
+                    + Add Task
+                </a>
+            </li>
+            {% endif %}
+
+
+            
 
 
         </ul>
         <!-- Log out at the bottom -->
-        <a href="{% url 'logout' %}" class="nav-link text-danger mt-auto">Log out</a>
+        <button class="bg-danger"><a href="{% url 'logout' %}" class="nav-link mt-auto">Log out</a></button>
     </div>
 
         <!-- Page Content -->

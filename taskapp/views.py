@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Project, Task, ToDoItem
+from .models import Project, Task ,TaskAttachment ,SubTask
 from .forms import  ProjectForm, TaskForm, AssignTaskForm, SubTaskForm, RequestUpdateForm, ProvideUpdateForm 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
@@ -9,7 +9,6 @@ from django.db.models import Q
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware, localtime
 from django.urls import reverse
-from django.http import JsonResponse
 
 User = get_user_model()
 
@@ -26,9 +25,36 @@ def employee_dashboard(request):
     pending_tasks = Task.objects.filter(assigned_to=request.user, status="pending").count()
     due_today = Task.objects.filter(assigned_to=request.user, due_date__date=today).count()
     past_due = Task.objects.filter(assigned_to=request.user, due_date__date__lt=today).exclude(status="completed").count()
-    todo_items = ToDoItem.objects.filter(user=request.user)
+    if request.method == "POST":
+        form = TaskForm(request.POST)
+        if form.is_valid():
+            task = form.save(commit=False)
+            task.status = "pending"
+            task.assigned_by = request.user
+            task.save()
 
-   
+            # Handle attachments
+            files = request.FILES.getlist('attachments')
+            for file in files:
+                TaskAttachment.objects.create(
+                    task=task,
+                    file=file,
+                    uploaded_by=request.user
+                )
+
+            # Handle subtasks
+            subtasks = request.POST.getlist('subtasks[]')
+            for subtask_title in subtasks:
+                if subtask_title.strip():  # Only create if not empty
+                    SubTask.objects.create(
+                        parent_task=task,
+                        title=subtask_title.strip()
+                    )
+
+            return redirect("employee_dashboard")
+    else:
+        form = TaskForm()
+
     return render(request, "dashboard.html", {
         "tasks_pending": tasks_pending,
         "tasks_completed": tasks_completed,
@@ -39,24 +65,8 @@ def employee_dashboard(request):
         "pending_tasks": pending_tasks,
         "due_today": due_today,
         "past_due": past_due,
-        "todo_items": todo_items,
+        "form": form,
     })
-    
-@login_required
-def add_todo(request):
-    if request.method == "POST":
-        task_text = request.POST.get("task")
-        ToDoItem.objects.create(user=request.user, task=task_text)
-        return JsonResponse({"success": True})
-    return JsonResponse({"success": False})
-
-@login_required
-def update_todo_status(request, task_id):
-    task = ToDoItem.objects.get(id=task_id, user=request.user)
-    task.is_completed = not task.is_completed
-    task.save()
-    return JsonResponse({"success": True})
-
 
 @login_required
 def marketplace(request):
@@ -93,9 +103,30 @@ def manager_dashboard(request):
         form = TaskForm(request.POST)
         if form.is_valid():
             task = form.save(commit=False)
+            task.status = "pending"
             task.assigned_by = request.user
             task.save()
-            return redirect("manager_dashboard")  # Refresh the page after adding
+
+            # Handle attachments
+            files = request.FILES.getlist('attachments')
+            for file in files:
+                TaskAttachment.objects.create(
+                    task=task,
+                    file=file,
+                    uploaded_by=request.user
+                )
+
+            # Handle subtasks
+            subtasks = request.POST.getlist('subtasks[]')
+            for subtask_title in subtasks:
+                if subtask_title.strip():  # Only create if not empty
+                    SubTask.objects.create(
+                        parent_task=task,
+                        title=subtask_title.strip()
+                    )
+            return redirect("manager_dashboard")
+
+            
     else:
         form = TaskForm()
     return render(request, "projects.html", {"projects": projects, "form": form,"tasks_assigned": tasks_assigned, })
@@ -105,53 +136,75 @@ def project_detail(request, project_id):
     project = get_object_or_404(Project, id=project_id, manager=request.user)
     tasks = project.tasks.all().order_by("due_date")
     form = TaskForm(request.POST)
-    
 
-    if request.method == "POST"and form.is_valid():
-        #form = TaskForm(request.POST)
-        #if form.is_valid():
-        #form.save()
+    if request.method == "POST" and form.is_valid():
         task = form.save(commit=False)
         task.project = project
         task.status = "pending"
-        task.assigned_by = request.user  # Set the user who assigned the task
+        task.assigned_by = request.user
         task.save()
+
+        # Handle attachments
+        files = request.FILES.getlist('attachments')
+        for file in files:
+            TaskAttachment.objects.create(
+                task=task,
+                file=file,
+                uploaded_by=request.user
+            )
+
+        # Handle subtasks
+        subtasks = request.POST.getlist('subtasks[]')
+        for subtask_title in subtasks:
+            if subtask_title.strip():  # Only create if not empty
+                SubTask.objects.create(
+                    parent_task=task,
+                    title=subtask_title.strip()
+                )
+
         return redirect("project_detail", project_id=project.id)
     else:
-            print(form.errors) 
-    # Find the next task that should be pending
-    #for task in tasks:
-     #   if task.status == "completed":
-      #      continue
-       # elif task.status == "pending":
-        #    task.status = "in_progress"
-         #   task.save()
-    return render(request, "projectdetail.html", {"project": project, "tasks": tasks, "progress": project.progress(), "form": form})
+        print(form.errors)
+
+    return render(request, "projectdetail.html", {
+        "project": project,
+        "tasks": tasks,
+        "progress": project.progress(),
+        "form": form
+    })
 
 @login_required
 def assign_task(request, task_id):
-    task = get_object_or_404(Task, id=task_id)  # Get the task
-    subtasks = task.subtasks.all()  # Fetch subtasks
+    task = get_object_or_404(Task, id=task_id)
+    
     if request.method == "POST":
-        form = SubTaskForm(request.POST)
-        if form.is_valid():
-            subtask = form.save(commit=False)
-            subtask.parent_task = task  # Assign parent task
-            subtask.assigned_to = task.assigned_to  # Assign to same user
-            subtask.save()
-            return redirect('task_detail', task_id=task_id)
-    else:
-        form = SubTaskForm()
+        # Handle attachment upload
+        if "attachment_form" in request.POST:
+            files = request.FILES.getlist("attachments")
+            for file in files:
+                TaskAttachment.objects.create(task=task, file=file, uploaded_by=request.user)
+            return redirect('assign_task', task_id=task.id)
+            
+        # Handle subtask creation
+        elif "subtask_form" in request.POST:
+            subtasks = request.POST.getlist("subtasks[]")
+            for subtask_title in subtasks:
+                if subtask_title.strip():
+                    SubTask.objects.create(parent_task=task, title=subtask_title.strip())
+            return redirect('assign_task', task_id=task.id)
+            
+        # Handle task reassignment
+        elif "reassign_form" in request.POST:
+            form = AssignTaskForm(request.POST, instance=task)
+            if form.is_valid():
+                form.save()
+                return redirect('assign_task', task_id=task.id)
 
-    if request.method == "POST":
-        form = AssignTaskForm(request.POST, instance=task)
-        if form.is_valid():
-            form.save()  # Save the updated assignment
-            return redirect("project_detail", project_id=task.project.id)  # Redirect after successful update
-    else:
-        form = AssignTaskForm(instance=task)
+        locals()["message"] = "Task successfully updated!"
 
-    return render(request, "assigntask.html", {'subtasks': subtasks,"form": form, "task": task})
+
+    form = AssignTaskForm(instance=task)
+    return render(request, "assigntask.html", {"form": form, "task": task,})
 
 @login_required
 def reassign_task(request, task_id ):

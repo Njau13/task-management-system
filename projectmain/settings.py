@@ -82,7 +82,10 @@ DATABASES = {
     }
 }
 
+import os
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 AUTH_USER_MODEL = "authenticate.CustomUser"
 LOGIN_URL = "/authenticate/login/"
 #LOGIN_REDIRECT_URL = "tasklist" 
@@ -129,3 +132,13 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Make sure the upload handlers are configured
+FILE_UPLOAD_HANDLERS = [
+    'django.core.files.uploadhandler.MemoryFileUploadHandler',
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
+]
+
+# Optional: Set maximum upload size
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
