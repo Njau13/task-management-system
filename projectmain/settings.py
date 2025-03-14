@@ -64,6 +64,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'taskapp.context_processors.notification_processor',
             ],
         },
     },
@@ -91,6 +92,7 @@ LOGIN_URL = "/authenticate/login/"
 #LOGIN_REDIRECT_URL = "tasklist" 
 #LOGIN_REDIRECT_URL = "managerlist" # Change this to your desired page
 LOGOUT_REDIRECT_URL = "login"  # Redirect to login after logout
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

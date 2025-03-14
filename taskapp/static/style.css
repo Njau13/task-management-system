@@ -43,6 +43,34 @@ body {
     transform: scale(1.02);
 }
 
+.notification-dropdown {
+    width: 350px;
+    padding: 0;
+}
 
+.notification-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.notification-item.unread {
+    background-color: #f8f9fa;
+}
+
+.notification-item:hover {
+    background-color: #f1f3f5;
+}
+
+.notification-icon i {
+    font-size: 1.2rem;
+}
+
+.notification-title {
+    font-weight: 500;
+}
+
+.badge {
+    font-size: 0.6rem;
+}
 
 

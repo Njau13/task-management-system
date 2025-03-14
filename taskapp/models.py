@@ -130,3 +130,27 @@ class ProjectMember(models.Model):
 
     def __str__(self):
         return f"{self.project.name} - {self.user.username} ({self.role})"
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = (
+        ('project_invite', 'Project Invitation'),
+        ('task_assigned', 'Task Assigned'),
+        ('update_requested', 'Update Requested'),
+        ('task_completed', 'Task Completed'),
+        ('milestone_due', 'Milestone Due'),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    related_project = models.ForeignKey('Project', on_delete=models.CASCADE, null=True, blank=True)
+    related_task = models.ForeignKey('Task', on_delete=models.CASCADE, null=True, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.title}"

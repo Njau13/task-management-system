@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Project, Task ,TaskAttachment ,SubTask, ProjectObjective, ProjectStakeholder, ProjectMember, ProjectMilestone
+from .models import Project, Task ,TaskAttachment ,SubTask, ProjectObjective, ProjectStakeholder, ProjectMember, ProjectMilestone, Notification
 from .forms import  ProjectForm, TaskForm, AssignTaskForm, SubTaskForm, RequestUpdateForm, ProvideUpdateForm 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
@@ -13,6 +13,7 @@ from django.core.mail import send_mail
 from django.contrib import messages
 from django.db.utils import IntegrityError
 from django.http import HttpResponseForbidden
+from .utils import create_notification
 
 User = get_user_model()
 
@@ -184,6 +185,21 @@ def assign_task(request, task_id):
     task = get_object_or_404(Task, id=task_id)
     
     if request.method == "POST":
+        if "reassign_form" in request.POST:
+            form = AssignTaskForm(request.POST, instance=task)
+            if form.is_valid():
+                task = form.save()
+                # Create notification for the newly assigned user
+                create_notification(
+                    user=task.assigned_to,
+                    notification_type='task_assigned',
+                    title='New Task Assignment',
+                    message=f'You have been assigned the task: {task.title}',
+                    project=task.project,
+                    task=task
+                )
+                return redirect('assign_task', task_id=task.id)
+            
         # Handle attachment upload
         if "attachment_form" in request.POST:
             files = request.FILES.getlist("attachments")
@@ -198,13 +214,6 @@ def assign_task(request, task_id):
                 if subtask_title.strip():
                     SubTask.objects.create(parent_task=task, title=subtask_title.strip())
             return redirect('assign_task', task_id=task.id)
-            
-        # Handle task reassignment
-        elif "reassign_form" in request.POST:
-            form = AssignTaskForm(request.POST, instance=task)
-            if form.is_valid():
-                form.save()
-                return redirect('assign_task', task_id=task.id)
 
         locals()["message"] = "Task successfully updated!"
 
@@ -415,6 +424,15 @@ def request_update(request, task_id):
     task.update_requested = True
     task.save()
     
+    create_notification(
+        user=task.assigned_to,
+        notification_type='update_requested',
+        title='Update Requested',
+        message=f'An update has been requested for task: {task.title}',
+        project=task.project,
+        task=task
+    )
+    
     return redirect(reverse("taskdetail", kwargs={"task_id": task_id}))
 
 
@@ -555,17 +573,21 @@ def update_project_members(request, project_id):
         project.project_members.all().delete()
 
         # Add new/updated members
-        for user_id, role in zip(member_ids, member_roles):
-            if user_id:
-                try:
-                    ProjectMember.objects.create(
-                        project=project,
-                        user_id=user_id,
-                        role=role
-                    )
-                except IntegrityError:
-                    messages.error(request, f'User is already a member of the project')
-                    continue
+        for member_id, role in zip(member_ids, member_roles):
+            if member_id:
+                user = User.objects.get(id=member_id)
+                ProjectMember.objects.create(
+                    project=project,
+                    user=user,
+                    role=role
+                )
+                create_notification(
+                    user=user,
+                    notification_type='project_invite',
+                    title=f'Added to Project: {project.name}',
+                    message=f'You have been added as a {role} to the project {project.name}',
+                    project=project
+                )
 
         messages.success(request, 'Team members updated successfully')
         return redirect('project_details', project_id=project.id)
@@ -584,3 +606,26 @@ def update_project_status(request, project_id):
         project.save()
 
     return redirect('project_details', project_id=project_id)
+
+@login_required
+def notifications_view(request):
+    notifications = request.user.notifications.all()
+    return render(request, 'notifications.html', {'notifications': notifications})
+
+@login_required
+def mark_notification_read(request, notification_id):
+    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+    notification.is_read = True
+    notification.save()
+    return redirect(request.META.get('HTTP_REFERER', 'notifications'))
+
+@login_required
+def mark_all_read(request):
+    request.user.notifications.filter(is_read=False).update(is_read=True)
+    return redirect('notifications')
+
+@login_required
+def some_view(request):
+    print("Current user:", request.user)
+    print("User notifications:", list(request.user.notifications.all()))
+    # ... rest of the view code ...

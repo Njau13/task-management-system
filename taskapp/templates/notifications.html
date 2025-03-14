@@ -1,0 +1,73 @@
+{% extends "index.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Notifications</h4>
+                    {% if notifications %}
+                        <a href="{% url 'mark_all_read' %}" class="btn btn-light btn-sm">Mark All as Read</a>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for notification in notifications %}
+                            <div class="list-group-item notification-item {% if not notification.is_read %}unread{% endif %}">
+                                <div class="d-flex">
+                                    <div class="notification-icon me-3">
+                                        {% if notification.notification_type == 'project_invite' %}
+                                            <i class="fas fa-user-plus text-primary"></i>
+                                        {% elif notification.notification_type == 'task_assigned' %}
+                                            <i class="fas fa-tasks text-info"></i>
+                                        {% elif notification.notification_type == 'update_requested' %}
+                                            <i class="fas fa-exclamation-circle text-warning"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="notification-content flex-grow-1">
+                                        <h6 class="mb-1">{{ notification.title }}</h6>
+                                        <p class="mb-1">{{ notification.message }}</p>
+                                        <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                                    </div>
+                                    <div class="notification-actions">
+                                        {% if not notification.is_read %}
+                                            <a href="{% url 'mark_notification_read' notification.id %}" class="btn btn-sm btn-outline-primary">
+                                                Mark as Read
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="text-center p-4 text-muted">
+                                No notifications to display
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.notification-item {
+    transition: background-color 0.3s;
+}
+.notification-item.unread {
+    background-color: #f8f9fa;
+}
+.notification-item:hover {
+    background-color: #f1f3f5;
+}
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: #e9ecef;
+}
+</style>
+{% endblock %} 

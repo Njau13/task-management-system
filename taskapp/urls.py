@@ -29,4 +29,7 @@ urlpatterns = [
     path('project/<int:project_id>/update-members/', views.update_project_members, name='update_project_members'),
     path('project/<int:project_id>/update-status/', views.update_project_status, name='update_project_status'),
     path('project/<int:project_id>/create-task/', views.create_project_task, name='create_project_task'),
+    path('notifications/', views.notifications_view, name='notifications'),
+    path('notifications/mark-read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
+    path('notifications/mark-all-read/', views.mark_all_read, name='mark_all_read'),
 ]
