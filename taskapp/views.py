@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Project, Task ,TaskAttachment ,SubTask, ProjectObjective, ProjectStakeholder, ProjectMember, ProjectMilestone, Notification
-from .forms import  ProjectForm, TaskForm, AssignTaskForm, SubTaskForm, RequestUpdateForm, ProvideUpdateForm 
+from .forms import  ProjectForm, TaskForm, AssignTaskForm, TaskUpdateForm, SubTaskForm, RequestUpdateForm, ProvideUpdateForm, TaskReviewForm, TaskReviewResponseForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 #from django.views.generic import DetailView
@@ -14,6 +14,7 @@ from django.contrib import messages
 from django.db.utils import IntegrityError
 from django.http import HttpResponseForbidden
 from .utils import create_notification
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -23,6 +24,7 @@ def employee_dashboard(request):
     tasks_completed = Task.objects.filter(assigned_to=request.user, status="completed")
     tasks_in_progress = Task.objects.filter(assigned_to=request.user, status="in_progress")
     today = localtime().date()
+    tasks_review = Task.objects.filter(assigned_to=request.user, status="under_review")
     tasks_today =Task.objects.filter(assigned_to=request.user, due_date__date=today) #Uses .date() to match only the date part of due_date (ignores time).
     overdue = localtime().date()
     tasks_overdue= Task.objects.filter(assigned_to=request.user, due_date__date__lt=overdue).exclude(status="completed") #lt means less than today
@@ -30,6 +32,7 @@ def employee_dashboard(request):
     pending_tasks = Task.objects.filter(assigned_to=request.user, status="pending").count()
     due_today = Task.objects.filter(assigned_to=request.user, due_date__date=today).count()
     past_due = Task.objects.filter(assigned_to=request.user, due_date__date__lt=today).exclude(status="completed").count()
+    
     if request.method == "POST":
         form = TaskForm(request.POST)
         if form.is_valid():
@@ -66,6 +69,7 @@ def employee_dashboard(request):
         "tasks_in_progress": tasks_in_progress,
         "tasks_today":tasks_today,
         "tasks_overdue":tasks_overdue,
+        "tasks_review":tasks_review,
         "total_tasks": total_tasks,
         "pending_tasks": pending_tasks,
         "due_today": due_today,
@@ -144,6 +148,9 @@ def project_detail(request, project_id):
     tasks = project.tasks.all().order_by("due_date")
     form = TaskForm(request.POST)
 
+    project.is_leader = project.project_members.filter(user=request.user, role='leader').exists()
+
+
     if request.method == "POST" and form.is_valid():
         task = form.save(commit=False)
         task.project = project
@@ -171,7 +178,8 @@ def project_detail(request, project_id):
 
         return redirect("project_detail", project_id=project.id)
     else:
-        print(form.errors)
+        form = TaskForm()
+        
 
     return render(request, "projectdetail.html", {
         "project": project,
@@ -181,14 +189,27 @@ def project_detail(request, project_id):
     })
 
 @login_required
+def user_projects(request):
+    project_memberships = ProjectMember.objects.filter(user=request.user)
+    projects = [membership.project for membership in project_memberships]  # Extract projects
+    return render(request, "memberproject.html", {"projects": projects})
+
+@login_required
 def assign_task(request, task_id):
     task = get_object_or_404(Task, id=task_id)
+    review_response_form = TaskReviewResponseForm()
     
+
     if request.method == "POST":
         if "reassign_form" in request.POST:
             form = AssignTaskForm(request.POST, instance=task)
+            task.status="pending"
             if form.is_valid():
+                # Reset update-related fields
+                task.update_requested = False  # Clear update request
+                task.update_response = None  # Remove previous responses
                 task = form.save()
+
                 # Create notification for the newly assigned user
                 create_notification(
                     user=task.assigned_to,
@@ -219,7 +240,7 @@ def assign_task(request, task_id):
 
 
     form = AssignTaskForm(instance=task)
-    return render(request, "assigntask.html", {"form": form, "task": task,})
+    return render(request, "assigntask.html", {"form": form, "task": task, "review_response_form":review_response_form})
 
 
 @login_required
@@ -228,8 +249,10 @@ def reassign_task(request, task_id ):
     if request.method == "POST":
         form = TaskForm(request.POST, instance=task)
         if form.is_valid():
-            task.assigned_to = form.cleaned_data["assigned_to"]  # Only update assigned_to
-            task.save()
+            task = form.save(commit=False)  # Don't save yet
+            task.assigned_to = form.cleaned_data["assigned_to"]
+            task.status = "pending"
+            task.save()  # Now save changes
             print(f"Redirecting to project_detail with project_id={task.project.id}")  # Debug print
             return redirect("project_detail" ,project_id=task.project.id)
         else:
@@ -422,6 +445,8 @@ def request_update(request, task_id):
         return redirect("employee_dashboard")  # Only the manager can request updates
 
     task.update_requested = True
+    task.update_response = None
+
     task.save()
     
     create_notification(
@@ -433,7 +458,7 @@ def request_update(request, task_id):
         task=task
     )
     
-    return redirect(reverse("taskdetail", kwargs={"task_id": task_id}))
+    return redirect(reverse("assign_task", kwargs={"task_id": task_id}))
 
 
 
@@ -458,13 +483,39 @@ def provide_update(request, task_id):
 
 def task_detail(request, task_id):
     task = get_object_or_404(Task, id=task_id)
-    assign_form = ProvideUpdateForm(request.POST or None, instance=task)  
 
-    if request.method == "POST" and assign_form.is_valid():
-        assign_form.save()
-        return redirect("employee_dashboard")  
+    # Load forms
+    assign_form = ProvideUpdateForm(request.POST or None, instance=task)
+    review_form = TaskReviewForm()
+    review_response_form = TaskReviewResponseForm()
 
-    return render(request, "task_detail.html", {"task": task, "assign_form": assign_form})
+    if request.method == "POST":
+        # Check if updating the response field
+        if 'status' in request.POST or 'update_response' in request.POST:
+            if assign_form.is_valid():
+                assign_form.save()
+                messages.success(request, "Task updated successfully!")
+                return redirect(request.path)  # Refresh page
+            else:
+                print(assign_form.errors)
+
+        # Check if updating a subtask
+        subtask_id = request.POST.get("subtask_id")
+        if subtask_id:
+            subtask = get_object_or_404(SubTask, id=subtask_id)
+            subtask.completed = not subtask.completed  # Toggle completion
+            subtask.save()
+            
+
+    context = {
+        'task': task,
+        'assign_form': assign_form,
+        'review_form': review_form,
+        'review_response_form': review_response_form,
+    }
+
+    return render(request, 'task_detail.html', context)
+   #return render(request, "task_detail.html", {"task": task, "assign_form": assign_form})
     
 class TaskDetailView(View):
     def get(self, request, pk):
@@ -629,3 +680,73 @@ def some_view(request):
     print("Current user:", request.user)
     print("User notifications:", list(request.user.notifications.all()))
     # ... rest of the view code ...
+
+@login_required
+def submit_task_review(request, task_id):
+    task = get_object_or_404(Task, id=task_id)
+    
+    if request.method == "POST" and request.user == task.assigned_to:
+        form = TaskReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.task = task
+            review.submitted_by = request.user
+            review.save()
+
+            # Update task status
+            task.status = 'under_review'
+            task.save()
+
+            # Create notification for task assigner
+            create_notification(
+                user=task.assigned_by,
+                notification_type='review_submitted',
+                title='Task Submitted for Review',
+                message=f'Task "{task.title}" has been submitted for review',
+                task=task
+            )
+
+            messages.success(request, 'Task submitted for review successfully')
+            return redirect("taskdetail", task_id=task_id)
+
+    return redirect("taskdetail", task_id=task_id)
+
+@login_required
+def review_task(request, task_id):
+    task = get_object_or_404(Task, id=task_id)
+    
+    if request.method == "POST" and request.user == task.assigned_by:
+        form = TaskReviewResponseForm(request.POST)
+        if form.is_valid():
+            review = task.reviews.last()
+            review.reviewed_by = request.user
+            review.reviewed_at = timezone.now()
+            review.reviewer_comment = form.cleaned_data['reviewer_comment']
+            
+            action = request.POST.get('action')
+            if action == 'approve':
+                review.status = 'approved'
+                task.status = 'completed'
+                notification_message = f'Task "{task.title}" has been approved and marked as completed'
+            else:
+                review.status = 'rejected'
+                task.status = 'in_progress'
+                notification_message = f'Task "{task.title}" needs some changes and has been returned. Comment:"{review.reviewer_comment}"'
+
+            review.save()
+            task.save()
+
+            # Create notification for task assignee
+            create_notification(
+                user=task.assigned_to,
+                notification_type='review_response',
+                title='Task Review Response',
+                message=notification_message,
+                task=task
+            )
+
+            messages.success(request, 'Review submitted successfully')
+        else:
+            print(form.errors)  # Debug form errors
+
+    return redirect('assign_task', task_id=task.id)

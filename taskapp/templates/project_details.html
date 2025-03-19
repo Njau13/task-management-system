@@ -10,7 +10,7 @@
                     <span class="badge bg-light text-primary">{{ project.get_priority_display }}</span>
                 </div>
                 <div class="card-body">
-                    <p class="lead">{{ project.description }}</p>
+                    <p>{{ project.description }}</p>
                     <div class="row">
                         <div class="col-md-6">
                             <p><strong>Start Date:</strong> {{ project.start_date|date:"M d, Y" }}</p>
@@ -133,15 +133,15 @@
         <div class="card-body">
             <ul class="nav nav-tabs" id="projectManagementTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="milestones-tab" data-bs-toggle="tab" data-bs-target="#milestones" type="button">
-                        Manage Milestones
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="members-tab" data-bs-toggle="tab" data-bs-target="#members" type="button">
+                    <button class="nav-link active" id="members-tab" data-bs-toggle="tab" data-bs-target="#members" type="button">
                         Manage Members
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="milestones-tab" data-bs-toggle="tab" data-bs-target="#milestones" type="button">
+                        Manage Milestones
+                    </button>
+                </li> 
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="status-tab" data-bs-toggle="tab" data-bs-target="#status" type="button">
                         Update Status
@@ -150,8 +150,49 @@
             </ul>
 
             <div class="tab-content p-3" id="projectManagementContent">
+                <!-- Members Tab -->
+                <div class="tab-pane fade show active" id="members">
+                    <form method="POST" action="{% url 'update_project_members' project.id %}">
+                        {% csrf_token %}
+                        <div id="membersList">
+                            {% for member in project.project_members.all %}
+                            <div class="member-item card mb-3">
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <select class="form-select" name="member_ids[]" required>
+                                                <option value="">Select Member</option>
+                                                {% for user in available_users %}
+                                                    <option value="{{ user.id }}" 
+                                                        {% if user.id == member.user.id %}selected{% endif %}>
+                                                        {{ user.get_full_name|default:user.username }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <select class="form-select" name="member_roles[]">
+                                                <option value="member" {% if member.role == 'member' %}selected{% endif %}>Team Member</option>
+                                                <option value="leader" {% if member.role == 'leader' %}selected{% endif %}>Team Leader</option>
+                                                <option value="observer" {% if member.role == 'observer' %}selected{% endif %}>Observer</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <button type="button" class="btn btn-danger btn-sm remove-member">Remove Member</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-outline-primary mb-3" id="addMember">
+                            + Add New Member
+                        </button>
+                        <button type="submit" class="btn btn-primary">Save Member Changes</button>
+                    </form>
+                </div>
                 <!-- Milestones Tab -->
-                <div class="tab-pane fade show active" id="milestones">
+                <div class="tab-pane fade" id="milestones">
                     <form method="POST" action="{% url 'update_project_milestones' project.id %}">
                         {% csrf_token %}
                         <div id="milestonesList">
@@ -193,47 +234,7 @@
                     </form>
                 </div>
 
-                <!-- Members Tab -->
-                <div class="tab-pane fade" id="members">
-                    <form method="POST" action="{% url 'update_project_members' project.id %}">
-                        {% csrf_token %}
-                        <div id="membersList">
-                            {% for member in project.project_members.all %}
-                            <div class="member-item card mb-3">
-                                <div class="card-body">
-                                    <div class="row align-items-center">
-                                        <div class="col-md-4">
-                                            <select class="form-select" name="member_ids[]" required>
-                                                <option value="">Select Member</option>
-                                                {% for user in available_users %}
-                                                    <option value="{{ user.id }}" 
-                                                        {% if user.id == member.user.id %}selected{% endif %}>
-                                                        {{ user.get_full_name|default:user.username }}
-                                                    </option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <select class="form-select" name="member_roles[]">
-                                                <option value="member" {% if member.role == 'member' %}selected{% endif %}>Team Member</option>
-                                                <option value="leader" {% if member.role == 'leader' %}selected{% endif %}>Team Leader</option>
-                                                <option value="observer" {% if member.role == 'observer' %}selected{% endif %}>Observer</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <button type="button" class="btn btn-danger btn-sm remove-member">Remove Member</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        <button type="button" class="btn btn-outline-primary mb-3" id="addMember">
-                            + Add New Member
-                        </button>
-                        <button type="submit" class="btn btn-primary">Save Member Changes</button>
-                    </form>
-                </div>
+                
 
                 <!-- Status Tab -->
                 <div class="tab-pane fade" id="status">

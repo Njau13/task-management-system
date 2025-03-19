@@ -11,12 +11,7 @@ def login_user(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            if user.role == "employee":
-                return redirect("employee_dashboard")  
-            elif user.role == "manager":
-                return redirect("manager_dashboard")
-            else:
-                return redirect("login")
+            return redirect("employee_dashboard")  
         else:
             messages.error(request, "Entered information is invalid")
     return render(request, "login.html")

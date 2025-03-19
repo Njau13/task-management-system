@@ -6,7 +6,7 @@ def notification_processor(request):
     
     if request.user.is_authenticated:
         unread_count = request.user.notifications.filter(is_read=False).count()
-        recent_notifications = request.user.notifications.all()[:5]
+        recent_notifications = request.user.notifications.filter(is_read=False)[:5]
         #print(f"Unread count: {unread_count}")
         #print(f"Recent notifications: {list(recent_notifications)}")
         

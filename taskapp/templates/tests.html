@@ -290,4 +290,84 @@ def assign_task(request, task_id):
         else:
             form = TaskForm()
 
+            <!--ASSIGN TASK .HTML-->
+            {% if task.update_requested and request.user == task.assigned_to %}
+            <form method="post" action="{% url 'provide_update' task.id %}">
+                {% csrf_token %}
+                <div class="mt-4">
+                    <h4>Provide an Update</h4>
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-primary">Submit Update</button>
+                </div>
+            </form>
+        {% endif %}
+
+        def task_detail(request, task_id):
+    task = get_object_or_404(Task, id=task_id)
+    assign_form = ProvideUpdateForm(request.POST or None, instance=task)
+
+    if request.method == "POST":
+        if assign_form.is_valid():
+            status = assign_form.cleaned_data.get("status")
+            explanation = assign_form.cleaned_data.get("explanation")
+
+            if status == "submitforreview" and not explanation:
+                messages.error(request, "You must provide an explanation when submitting for review.")
+            else:
+                assign_form.save()
+                messages.success(request, "Task updated successfully!")
+                return redirect("employee_dashboard")  
+        else:
+            print(assign_form.errors)
+
+    return render(request, "task_detail.html", {"task": task, "assign_form": assign_form})
+    
+
+        @login_required
+def task_detail(request, task_id):
+    task = get_object_or_404(Task, id=task_id)
+    task_update_form = TaskUpdateForm()
+    review_form = TaskReviewForm()
+    review_response_form = TaskReviewResponseForm()
+
+    if request.method == "POST":
+        subtask_id = request.POST.get("subtask_id")
+        if subtask_id:
+            subtask = get_object_or_404(SubTask, id=subtask_id)
+            subtask.completed = not subtask.completed  # Toggle completion
+            subtask.save()
+        return redirect(request.path)  # Refresh the page
+
+    context = {
+        'task': task,
+        'task_update_form':task_update_form,
+        'review_form': review_form,
+        'review_response_form': review_response_form,
+    }
+    
+    return render(request, 'task_detail.html', context)
+   #return render(request, "task_detail.html", {"task": task, "assign_form": assign_form})
+
+
+
+
+   class ProvideUpdateForm(forms.ModelForm):
+   explanation = forms.CharField(
+       widget=forms.Textarea(attrs={"placeholder": "Provide an explanation for review..."}),
+       required=False  # Initially optional, will be required based on status
+   )
+
+   class Meta:
+       model = Task
+       fields = ["status", "explanation"]
+
+   def clean(self):
+       cleaned_data = super().clean()
+       status = cleaned_data.get("status")
+       explanation = cleaned_data.get("explanation")
+
+       if status == "submitforreview" and not explanation:
+           raise forms.ValidationError("You must provide an explanation when submitting for review.")
+
+       return cleaned_data
 {% endblock %}

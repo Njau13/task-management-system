@@ -11,7 +11,14 @@
     <div class="row mb-4">
         <div class="col">
             <h2 class="text-center">
-                <a href="{% url 'project_details' project.id %}" class="text-decoration-none">{{ project.name }}</a>
+                {% if project.is_leader or project.manager == request.user %}
+                    <a href="{% url 'project_details' project.id %}" class="text-decoration-none">
+                        {{ project.name }}
+                    </a>
+                {% else %}
+                    {{ project.name }}
+                {% endif %}
+               
             </h2>
 <p class="text-center">{{ project.description }}</p>
             <div class="d-flex justify-content-between align-items-center">

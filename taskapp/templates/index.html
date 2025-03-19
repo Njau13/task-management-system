@@ -16,6 +16,12 @@
             overflow-y: auto;
             padding: 0;
         }
+        .sidebar {
+            position: absolute; /* Ensure it is positioned relative to a parent */
+            z-index: 1050; /* Higher than cards */
+            background: white; /* Ensure visibility */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
 
         .dropdown-header {
             background: white;
@@ -64,7 +70,7 @@
 <body style="background-color: white;">
     <!--Sidebar-->
     <div class="sidebar bg-dark text-white d-flex flex-column p-3 vh-100" style="width: 200px; position: fixed; top: 0; left: 0;">
-        <h4 class="text-center">Menu</h4>
+        <h4 class="text-center">{{ request.user }}</h4>
         <hr>
         <ul class="nav flex-column flex-grow-1">
             
@@ -73,9 +79,13 @@
             </li>
 
             {% if request.user.role == "manager" %}
-            <li class="nav-item">
-                <a href="{% url 'manager_dashboard' %}" class="nav-link text-white">Projects</a>
-            </li>
+                <li class="nav-item">
+                    <a href="{% url 'manager_dashboard' %}" class="nav-link text-white">Projects</a>
+                </li>
+            {% elif request.user.role == "employee"%}
+                <li class="nav-item">
+                    <a href="{% url 'user_projects' %}" class="nav-link text-white">Projects</a>
+                </li>
             {% endif %}
 
             <li class="nav-item">
@@ -114,9 +124,16 @@
                         {% for notification in recent_notifications %}
                             <li>
                                 <a class="dropdown-item d-flex align-items-center py-2 {% if not notification.is_read %}unread{% endif %}"
-                                   href="{% if notification.related_task %}{% url 'assign_task' notification.related_task.id %}
-                                         {% elif notification.related_project %}{% url 'project_details' notification.related_project.id %}
-                                         {% else %}#{% endif %}">
+                                   href="
+                                   {% if notification.related_task %}
+                                       {% if notification.related_task.assigned_to == request.user %}
+                                           {% url 'taskdetail' notification.related_task.id %}
+                                       {% elif notification.related_task.assigned_by == request.user %}
+                                           {% url 'assign_task' notification.related_task.id %}
+                                       {% else %}#{% endif %}
+                                   {% elif notification.related_project %}
+                                       {% url 'project_detail' notification.related_project.id %}
+                                   {% else %}#{% endif %}">
                                     <div class="flex-shrink-0 me-3">
                                         {% if notification.notification_type == 'project_invite' %}
                                             <i class="fas fa-user-plus text-primary"></i>
@@ -127,7 +144,7 @@
                                         {% endif %}
                                     </div>
                                     <div class="flex-grow-1">
-                                        <div class="fw-bold">{{ notification.title }}</div>
+                                        <div class="fw-bold text-dark">{{ notification.title }}</div>
                                         <div class="small text-muted">{{ notification.message|truncatechars:50 }}</div>
                                         <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
                                     </div>

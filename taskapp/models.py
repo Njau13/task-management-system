@@ -35,6 +35,8 @@ class Task(models.Model):
         ("in_progress", "In Progress"),
         ("completed", "Completed"),
         ("marketplace", "Market Place"),
+        ("submitforreview", "Submit for Review"),
+        ("under_review", "Under Review"),
     ]
 
     PRIORITY_CHOICES = [
@@ -55,6 +57,9 @@ class Task(models.Model):
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default="medium",blank=True )
     update_requested = models.BooleanField(default=False)  # Manager requests update
     update_response = models.TextField(blank=True, null=True)  # User's response 
+    explanation = models.TextField(blank=True, null=True)  # For review process
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_tasks")
+    reviewed_at = models.DateTimeField(null=True, blank=True)  # Timestamp of review
     milestone = models.ForeignKey(
         'ProjectMilestone', 
         on_delete=models.SET_NULL, 
@@ -154,3 +159,25 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.title}"
+
+class TaskReview(models.Model):
+    REVIEW_STATUS_CHOICES = (
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    )
+
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='reviews')
+    submitted_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='submitted_reviews')
+    comment = models.TextField()
+    status = models.CharField(max_length=20, choices=REVIEW_STATUS_CHOICES, default='pending')
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviewed_reviews', null=True, blank=True)
+    reviewer_comment = models.TextField(null=True, blank=True)
+    attachments = models.FileField(upload_to="task_reviews/", blank=True, null=True)
+
+    def __str__(self):
+        return f"Review for {self.task.title} - {self.status}"
+
+

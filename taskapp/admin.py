@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Task
+from .models import Project, Task ,TaskAttachment ,SubTask, ProjectObjective, ProjectStakeholder, ProjectMember, ProjectMilestone, Notification
 
 class SubTaskInline(admin.TabularInline):
     model = Task
@@ -9,5 +9,6 @@ class TaskAdmin(admin.ModelAdmin):
     inlines = [SubTaskInline]
     
 admin.site.register(Task)
+admin.site.register(SubTask)
 
 

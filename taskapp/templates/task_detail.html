@@ -9,24 +9,34 @@
                     <h3 class="text-dark">{{ task.title }}</h3>
                     <p><strong>Description:</strong> {{ task.description }}</p>
                     <p><strong>Assigned By:</strong> {{ task.assigned_by.username|default:"Unknown" }}</p>
-                    <!-- Form to update task status -->
-                    <form method="post">
-                        {% csrf_token %}
-                        <label for="status" style="font-weight: bold;">Update Status:</label>
-                        <select name="status" id="status">
-                            <option value="pending" {% if task.status == "pending" %}selected{% endif %}>Pending</option>
-                            <option value="in_progress" {% if task.status == "in_progress" %}selected{% endif %}>In Progress</option>
-                            <option value="completed" {% if task.status == "completed" %}selected{% endif %}>Completed</option>
-                            <option value="marketplace" {% if task.status == "marketplace" %}selected{% endif %}>Market Place</option>
-                        </select>
-                        <button type="submit" class="btn btn-primary">Update</button>
-                    </form>
                     <p><strong>Project:</strong> {{ task.project }}</p>
+                    {% if task.status != "completed" and task.status != "under_review" %}    
+                        <!-- Form to update task status -->
+                        <form method="post">
+                            {% csrf_token %}
+                            <label for="status" style="font-weight: bold;">Update Status:</label>
+                            <select name="status" id="status">
+                                <option value="pending" {% if task.status == "pending" %}selected{% endif %}>Pending</option>
+                                <option value="in_progress" {% if task.status == "in_progress" %}selected{% endif %}>In Progress</option>
+                                {% if task.assigned_to == task.assigned_by %}
+                                    <option value="completed" {% if task.status == "completed" %}selected{% endif %}>Completed</option>
+                                
+                                {%endif%}
+                            </select>
+                            <button type="submit" class="btn btn-primary">Update</button>
+                        </form>
+                    {%else%}
+                        <p style="font-weight: bold;">Status:  {{task.status}}</p>
+                        <p class="text-success"><span style="font-weight: bold;">Reviewer Comment:</span>
+                        {% if task.reviews.last %}
+                            {{ task.reviews.last.reviewer_comment }}
+                        {% endif %}
+                        </p>
+                    {%endif%}
                 </div>
             </div>
         </div>
             <div class="col-md-6 bg-light p-3">
-                <!-- Add this to your task detail template -->
                 <div class="card mb-3">
                     <div class="card-header">
                         <h6>Attachments</h6>
@@ -54,17 +64,19 @@
                     </div>
                     <div class="card-body">
                         {% for subtask in task.subtasks.all %}
-                            <div class="form-check">
-                                <input class="form-check-input subtask-checkbox" 
-                                    type="checkbox" 
-                                    {% if subtask.completed %}checked{% endif %}
-                                    data-subtask-id="{{ subtask.id }}"
-                                    id="subtask{{ subtask.id }}">
-                                <label class="form-check-label {% if subtask.completed %}text-decoration-line-through{% endif %}"
-                                    for="subtask{{ subtask.id }}">
+                        <div class="form-check">
+                            <form method="POST" action="">
+                                {% csrf_token %}
+                                <input type="hidden" name="subtask_id" value="{{ subtask.id }}">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       {% if subtask.completed %}checked{% endif %}
+                                       onchange="this.form.submit()">  <!-- Auto-submit on change -->
+                                <label class="form-check-label {% if subtask.completed %}text-decoration-line-through{% endif %}">
                                     {{ subtask.title }}
                                 </label>
-                            </div>
+                            </form>
+                        </div>
                         {% empty %}
                             <p class="text-muted">No subtasks</p>
                         {% endfor %}
@@ -73,6 +85,13 @@
             </div>
 
         </div>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
 
     
     
@@ -96,12 +115,111 @@
     {% if task.update_response %}
         <div class="alert alert-success mt-3">
             <strong>Update Response:</strong> {{ task.update_response }}
-            {% if request.user == task.assigned_by %}
-                <!-- Add a button for manager to request another update -->
-                <a href="{% url 'request_update' task.id %}" class="btn btn-warning btn-sm float-end">Request Another Update</a>
-            {% endif %}
         </div>
     {% endif %}
-    
+
+
+    {% if task.assigned_to != task.assigned_by %}
+        <!-- Submit for Review Button -->
+        {% if task.assigned_to == request.user and task.status == 'in_progress' %}
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#submitReviewModal">
+                Submit for Review
+            </button>
+        {% endif %}
+    {% endif %}    
+
+    <!-- Review Actions for Task Assigner -->
+    {% if task.assigned_by == request.user and task.status == 'under_review' %}
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Review Submission</h5>
+            </div>
+            <div class="card-body">
+                {% with latest_review=task.reviews.last %}
+                    <p><strong>Submitted by:</strong> {{ latest_review.submitted_by.username }}</p>
+                    <p><strong>Comment:</strong> {{ latest_review.comment }}</p>
+                    <p><strong>Submitted:</strong> {{ latest_review.submitted_at|timesince }} ago</p>
+                    
+                    <!-- Attachments -->
+                    {% if latest_review.attachments.exists %}
+                        <div class="mb-3">
+                            <h6>Attachments:</h6>
+                            {% for attachment in latest_review.attachments.all %}
+                                <a href="{{ attachment.file.url }}" class="btn btn-sm btn-outline-primary me-2" target="_blank">
+                                    <i class="fas fa-paperclip"></i> {{ attachment.file.name|slice:"14:" }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Review Response Form -->
+                    <form method="post" action="{% url 'review_task' task.id %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Feedback</label>
+                            {{ review_response_form.reviewer_comment }}
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" name="action" value="approve" class="btn btn-success">
+                                Approve & Complete
+                            </button>
+                            <button type="submit" name="action" value="reject" class="btn btn-danger">
+                                Return for Changes
+                            </button>
+                        </div>
+                    </form>
+                {% endwith %}
+            </div>
+        </div>
+    {% endif %}
+
+
+    <!-- Submit Review Modal -->
+    <div class="modal fade" id="submitReviewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Submit Task for Review</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" action="{% url 'submit_task_review' task.id %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Explanation</label>
+                            {{ review_form.comment }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Attachments</label>
+                            <input type="file" class="form-control" name="attachments">
+                            <small class="text-muted">Upload any relevant files or screenshots</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit for Review</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const statusField = document.getElementById("id_status");
+            const explanationField = document.getElementById("id_explanation").closest(".form-group");
+        
+            function toggleExplanationField() {
+                if (statusField.value === "submitforreview") {
+                    explanationField.style.display = "block";
+                } else {
+                    explanationField.style.display = "none";
+                }
+            }
+        
+            statusField.addEventListener("change", toggleExplanationField);
+            toggleExplanationField(); // Call on page load
+        });
+    </script>
 </div>
 {% endblock %}

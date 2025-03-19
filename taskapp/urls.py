@@ -1,6 +1,6 @@
 from django.urls import path
 from django.contrib.auth.decorators import login_required
-from .views import task_list, create_task, task_detail,testlist, manager_list,manager_dashboard,delete_project, takeon,assign_task, marketplace, delete_task, create_project, project_detail, employee_dashboard,request_update, provide_update
+from .views import task_list, create_task, user_projects, task_detail,testlist, manager_list,manager_dashboard,delete_project, takeon,assign_task, marketplace, delete_task, create_project, project_detail, employee_dashboard,request_update, provide_update
 from .views import TaskDetailView 
 from . import views
 
@@ -14,6 +14,7 @@ urlpatterns = [
     path("managerboard/", manager_dashboard, name="manager_dashboard"),
     path("manager/project/<int:project_id>/", project_detail, name="project_detail"),
     path("manager/project/new/", create_project, name="create_project"),
+    path("my-projects/", user_projects, name="user_projects"),
     #path("manager/project/<int:project_id>/assign-task/", create_projecttask, name="create_projecttask"),
     path("task/delete/<int:task_id>/", delete_task, name="delete_task"),
     path("project/delete/<int:project_id>/", delete_project, name="delete_project"),
@@ -32,4 +33,6 @@ urlpatterns = [
     path('notifications/', views.notifications_view, name='notifications'),
     path('notifications/mark-read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
     path('notifications/mark-all-read/', views.mark_all_read, name='mark_all_read'),
+    path('task/<int:task_id>/submit-review/', views.submit_task_review, name='submit_task_review'),
+    path('task/<int:task_id>/review/', views.review_task, name='review_task'),
 ]

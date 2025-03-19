@@ -137,6 +137,33 @@
     
 
     <div class="card mt-4 bg-success">
+        <h5 class="text-center text-white mt-3">Submitted for review</h5>
+    
+        <table class="table table-hover table-striped">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Assigned By</th>
+                    <th>Due date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks_review %}
+                    <tr>
+                        <td><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></td>               
+                        <td>{{ task.description }}</td>
+                        <td>{{ task.assigned_by }}</td>
+                        <td>{{ task.due_date }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">No submitted tasks.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
         <h5 class="text-center text-white">Completed Tasks</h5>
     
         <table class="table table-hover table-striped">
@@ -228,7 +255,7 @@
         </div>
     </div>
 
-    <!-- Add this JavaScript for handling subtasks -->
+    <!--JavaScript for handling subtasks -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const subtasksList = document.getElementById('subtasksList');

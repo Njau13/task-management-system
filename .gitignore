@@ -16,3 +16,9 @@ __pycache__/
 # Ignore IDE and OS-specific files
 .vscode/
 .DS_Store
+
+#ignore the attachments
+media/
+
+#ignore backup
+db_backup.sqlite3

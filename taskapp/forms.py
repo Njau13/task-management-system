@@ -1,5 +1,5 @@
 from django import forms
-from .models import Task, Project, User
+from .models import Task, Project, User, TaskReview
 from django.utils.timezone import now
 
 class TaskForm(forms.ModelForm):
@@ -52,7 +52,7 @@ class AssignTaskForm(forms.ModelForm):
 
     class Meta:
         model = Task
-        fields = ['assigned_to']
+        fields = ['assigned_to','status']
 
 
 class SubTaskForm(forms.ModelForm):
@@ -72,4 +72,26 @@ class ProvideUpdateForm(forms.ModelForm):
         fields = ['status', 'update_response']
         widgets = {
             'update_response': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Provide an update...'}),
+        }
+
+
+class TaskUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = ['update_response', "status"]  # Only include the response field
+
+class TaskReviewForm(forms.ModelForm):
+    class Meta:
+        model = TaskReview
+        fields = ['comment']
+        widgets = {
+            'comment': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Explain what you have completed...'}),
+        }
+
+class TaskReviewResponseForm(forms.ModelForm):
+    class Meta:
+        model = TaskReview
+        fields = ['reviewer_comment', 'status', 'attachments']
+        widgets = {
+            'reviewer_comment': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Provide feedback...'}),
         }

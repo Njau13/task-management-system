@@ -87,10 +87,11 @@ import os
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 AUTH_USER_MODEL = "authenticate.CustomUser"
 LOGIN_URL = "/authenticate/login/"
 #LOGIN_REDIRECT_URL = "tasklist" 
-#LOGIN_REDIRECT_URL = "managerlist" # Change this to your desired page
+#LOGIN_REDIRECT_URL = "managerlist" 
 LOGOUT_REDIRECT_URL = "login"  # Redirect to login after logout
 
 
@@ -135,12 +136,12 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Make sure the upload handlers are configured
+# Configuring the upload handlers
 FILE_UPLOAD_HANDLERS = [
     'django.core.files.uploadhandler.MemoryFileUploadHandler',
     'django.core.files.uploadhandler.TemporaryFileUploadHandler',
 ]
 
-# Optional: Set maximum upload size
+#Setting maximum upload size
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB

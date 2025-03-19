@@ -15,6 +15,17 @@
                         {% for notification in notifications %}
                             <div class="list-group-item notification-item {% if not notification.is_read %}unread{% endif %}">
                                 <div class="d-flex">
+                                    <a class="dropdown-item d-flex align-items-center py-2 {% if not notification.is_read %}unread{% endif %}"
+                                   href="
+                                   {% if notification.related_task %}
+                                       {% if notification.related_task.assigned_to == request.user %}
+                                           {% url 'taskdetail' notification.related_task.id %}
+                                       {% elif notification.related_task.assigned_by == request.user %}
+                                           {% url 'assign_task' notification.related_task.id %}
+                                       {% else %}#{% endif %}
+                                   {% elif notification.related_project %}
+                                       {% url 'project_detail' notification.related_project.id %}
+                                   {% else %}#{% endif %}">
                                     <div class="notification-icon me-3">
                                         {% if notification.notification_type == 'project_invite' %}
                                             <i class="fas fa-user-plus text-primary"></i>
@@ -29,6 +40,7 @@
                                         <p class="mb-1">{{ notification.message }}</p>
                                         <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
                                     </div>
+                                    </a>
                                     <div class="notification-actions">
                                         {% if not notification.is_read %}
                                             <a href="{% url 'mark_notification_read' notification.id %}" class="btn btn-sm btn-outline-primary">

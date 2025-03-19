@@ -110,8 +110,61 @@
                     </div>
                     </div>
                     </div>
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-success">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
                     <div class="card">
+                             <!-- Review Actions for Task Assigner -->
+            {% if task.assigned_by == request.user and task.status == 'under_review' %}
+                <div class="card mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Review Submission</h5>
+                    </div>
+                    <div class="card-body">
+                        {% with latest_review=task.reviews.last %}
+                            <p><strong>Submitted by:</strong> {{ latest_review.submitted_by.username }}</p>
+                            <p><strong>Comment:</strong> {{ latest_review.comment }}</p>
+                            <p><strong>Submitted:</strong> {{ latest_review.submitted_at|timesince }} ago</p>
+                            
+                            <!-- Attachments -->
+                            {% if latest_review.review_attachments.exists %}
+                                <ul>
+                                    {% for attachment in latest_review.review_attachments.all %}
+                                        <li><a href="{{ attachment.file.url }}">{{ attachment.file.name }}</a></li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
 
+                            <!-- Review Response Form -->
+                            <form method="post" action="{% url 'review_task' task.id %}">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label class="form-label">Feedback</label>
+                                    {{ review_response_form.reviewer_comment }}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Status</label>
+                                    {{ review_response_form.status }}
+                                </div>
+                                <div class="btn-group">
+                                    <button type="submit" name="action" value="approve" class="btn btn-success">
+                                        Approve & Complete
+                                    </button>
+                                    <button type="submit" name="action" value="reject" class="btn btn-danger">
+                                        Return for Changes
+                                    </button>
+                                </div>
+                            </form>
+                        {% endwith %}
+                    </div>
+                </div>
+            {% endif %}
+
+                {% if task.status != "completed" %}
                     <!-- Update Request Section -->
                     {% if request.user == task.assigned_by %}
                         <form method="post" action="{% url 'request_update' task.id %}">
@@ -133,20 +186,27 @@
 
                     {% if task.update_requested %}
                         <div class="alert alert-info mt-3">
-                            <strong>Update Requested!</strong> The manager has requested an update on this task.
+                            <strong>Update Requested!</strong> An update has been requested for this task.
                         </div>
                     {% endif %}
 
+
                     {% if task.update_response %}
                         <div class="alert alert-success mt-3">
-                            <strong>User's Update:</strong> {{ task.update_response }}
+                            <strong>Update Response:</strong> {{ task.update_response }}
+                            {% if request.user == task.assigned_by %}
+                                <!-- Add a button for manager to request another update -->
+                                <a href="{% url 'request_update' task.id %}" class="btn btn-warning btn-sm float-end">Request Another Update</a>
+                            {% endif %}
                         </div>
                     {% endif %}
+                {%endif%}
                 </div>
                 
             
         </div>
     </div>
+
     <!-- Add this JavaScript for handling subtasks -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
