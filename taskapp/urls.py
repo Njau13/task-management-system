@@ -35,4 +35,9 @@ urlpatterns = [
     path('notifications/mark-all-read/', views.mark_all_read, name='mark_all_read'),
     path('task/<int:task_id>/submit-review/', views.submit_task_review, name='submit_task_review'),
     path('task/<int:task_id>/review/', views.review_task, name='review_task'),
+    path('reports/projects/', views.project_reports, name='project_reports'),
+    path('reports/team/', views.team_reports, name='team_reports'),
+    path('reports/tasks/', views.task_reports, name='task_reports'),
+    path('reports/performance/', views.performance_reports, name='performance_reports'),
+    path('reports/export/<str:report_type>/', views.export_report, name='export_report'),
 ]

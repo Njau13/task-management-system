@@ -1,0 +1,104 @@
+{% extends "reports/dashboard.html" %}
+{% block report_content %}
+<div class="row">
+    <!-- Performance Overview -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Performance Overview</h6>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stat-card text-center p-3">
+                            <h3>{{ avg_task_completion_rate|floatformat:1 }}%</h3>
+                            <p class="mb-0">Task Completion Rate</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center p-3">
+                            <h3>{{ avg_on_time_completion|floatformat:1 }}%</h3>
+                            <p class="mb-0">On-Time Completion</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center p-3">
+                            <h3>{{ avg_task_quality|floatformat:1 }}</h3>
+                            <p class="mb-0">Avg Task Quality</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center p-3">
+                            <h3>{{ productivity_score|floatformat:1 }}</h3>
+                            <p class="mb-0">Productivity Score</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Individual Performance -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Individual Performance Metrics</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Tasks Completed</th>
+                                <th>On-Time Rate</th>
+                                <th>Quality Score</th>
+                                <th>Efficiency</th>
+                                <th>Collaboration</th>
+                                <th>Overall Rating</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in performance_data %}
+                            <tr>
+                                <td>{{ member.name }}</td>
+                                <td>{{ member.tasks_completed }}</td>
+                                <td>{{ member.on_time_rate }}%</td>
+                                <td>{{ member.quality_score }}/5</td>
+                                <td>{{ member.efficiency_score }}%</td>
+                                <td>{{ member.collaboration_score }}/5</td>
+                                <td>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-{{ member.rating_color }}" 
+                                             role="progressbar" 
+                                             style="width: {{ member.overall_rating }}%">
+                                            {{ member.overall_rating }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trend Analysis -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Performance Trends</h6>
+                <canvas id="performanceTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workload vs Performance -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Workload vs Performance</h6>
+                <canvas id="workloadPerformanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

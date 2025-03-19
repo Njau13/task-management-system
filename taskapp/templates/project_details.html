@@ -446,7 +446,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="col-md-3 mb-2">
                         <input type="date" class="form-control milestone-date" name="milestone_dates[]" 
                                min="{{ project.start_date|date:'Y-m-d' }}" 
-                               max="{{ project.end_date|date:'Y-m-d' }}" required>
+                               max="{{ project.due_date|date:'Y-m-d' }}" required>
                     </div>
                     <div class="col-md-3 mb-2">
                         <select class="form-select" name="milestone_status[]">

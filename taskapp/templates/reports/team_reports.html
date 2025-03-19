@@ -1,0 +1,108 @@
+{% extends "reports/dashboard.html" %}
+{% block report_content %}
+<div class="row">
+    <!-- Team Overview -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Team Overview</h6>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stat-card text-center p-3">
+                            <h3>{{ total_members }}</h3>
+                            <p class="mb-0">Total Members</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center p-3">
+                            <h3>{{ active_members }}</h3>
+                            <p class="mb-0">Active Members</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center p-3">
+                            <h3>{{ avg_tasks_per_member|floatformat:1 }}</h3>
+                            <p class="mb-0">Avg Tasks/Member</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center p-3">
+                            <h3>{{ completion_rate|floatformat:1 }}%</h3>
+                            <p class="mb-0">Task Completion Rate</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Member Performance -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Team Member Performance</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Role</th>
+                                <th>Projects</th>
+                                <th>Tasks Completed</th>
+                                <th>Tasks In Progress</th>
+                                <th>On-Time Completion</th>
+                                <th>Performance Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in team_members %}
+                            <tr>
+                                <td>{{ member.get_full_name|default:member.username }}</td>
+                                <td>{{ member.role }}</td>
+                                <td>{{ member.project_count }}</td>
+                                <td>{{ member.completed_tasks }}</td>
+                                <td>{{ member.in_progress_tasks }}</td>
+                                <td>{{ member.on_time_completion_rate }}%</td>
+                                <td>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-{{ member.performance_color }}" 
+                                             role="progressbar" >
+                                            {{ member.performance_score }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Distribution -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Project Distribution</h6>
+                <canvas id="projectDistributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workload Distribution -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Workload Distribution</h6>
+                <canvas id="workloadDistributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Add charts initialization here
+</script>
+{% endblock %} 

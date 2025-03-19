@@ -94,10 +94,14 @@
 
             {% if request.user.role == "manager" %}
             <li class="nav-item">
+                <a href="{% url 'project_reports' %}" class="nav-link text-white">Reports</a>
+            </li>
+            <li class="nav-item">
                 <a data-bs-toggle="modal" data-bs-target="#createTaskModal" class="nav-link text-danger">
                     + Add Task
                 </a>
             </li>
+
             {% endif %}
 
             <li class="nav-item dropdown">

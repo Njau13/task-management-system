@@ -1,0 +1,111 @@
+{% extends "reports/dashboard.html" %}
+{% block report_content %}
+<div class="row">
+    <!-- Task Overview -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Task Overview</h6>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stat-card text-center p-3">
+                            <h3>{{ total_tasks }}</h3>
+                            <p class="mb-0">Total Tasks</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center p-3">
+                            <h3>{{ completed_tasks }}</h3>
+                            <p class="mb-0">Completed Tasks</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center p-3">
+                            <h3>{{ overdue_tasks }}</h3>
+                            <p class="mb-0">Overdue Tasks</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center p-3">
+                            <h3>{{ avg_completion_time|floatformat:1 }} days</h3>
+                            <p class="mb-0">Avg Completion Time</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Status Distribution -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Task Status Distribution</h6>
+                <canvas id="taskStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Priority Distribution -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Task Priority Distribution</h6>
+                <canvas id="taskPriorityChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Timeline -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Task Timeline</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Task</th>
+                                <th>Project</th>
+                                <th>Assigned To</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in tasks %}
+                            <tr>
+                                <td>{{ task.title }}</td>
+                                <td>{{ task.project.name }}</td>
+                                <td>{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</td>
+                                <td>{{ task.due_date|date:"M d, Y" }}</td>
+                                <td>
+                                    <span class="badge bg-{{ task.status_color }}">
+                                        {{ task.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ task.priority_color }}">
+                                        {{ task.get_priority_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="progress">
+                                        <div class="progress-bar" role="progressbar" 
+                                             style="width: {{ task.progress }}%">
+                                            {{ task.progress }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

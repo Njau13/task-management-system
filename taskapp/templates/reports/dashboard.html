@@ -1,0 +1,110 @@
+{% extends "index.html" %}
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <!-- Reports Navigation -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Reports</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'project_reports' %}" class="list-group-item list-group-item-action {% if report_type == 'projects' %}active{% endif %}">
+                        <i class="fas fa-project-diagram me-2"></i> Project Reports
+                    </a>
+                    <a href="{% url 'team_reports' %}" class="list-group-item list-group-item-action {% if report_type == 'team' %}active{% endif %}">
+                        <i class="fas fa-users me-2"></i> Team Reports
+                    </a>
+                    <a href="{% url 'task_reports' %}" class="list-group-item list-group-item-action {% if report_type == 'tasks' %}active{% endif %}">
+                        <i class="fas fa-tasks me-2"></i> Task Reports
+                    </a>
+                    <a href="{% url 'performance_reports' %}" class="list-group-item list-group-item-action {% if report_type == 'performance' %}active{% endif %}">
+                        <i class="fas fa-chart-line me-2"></i> Performance Reports
+                    </a>
+                </div>
+            </div>
+
+            <!-- Report Filters -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get">
+                        <div class="mb-3">
+                            <label class="form-label">Date Range</label>
+                            <select class="form-select" name="date_range">
+                                <option value="7">Last 7 days</option>
+                                <option value="30">Last 30 days</option>
+                                <option value="90">Last 90 days</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3 custom-date-range d-none">
+                            <label class="form-label">From</label>
+                            <input type="date" class="form-control" name="date_from">
+                            <label class="form-label mt-2">To</label>
+                            <input type="date" class="form-control" name="date_to">
+                        </div>
+
+                        {% if projects %}
+                        <div class="mb-3">
+                            <label class="form-label">Project</label>
+                            <select class="form-select" name="project">
+                                <option value="">All Projects</option>
+                                {% for project in projects %}
+                                    <option value="{{ project.id }}">{{ project.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <!-- Report Content -->
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ report_title }}</h5>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="window.print()">
+                            <i class="fas fa-print"></i> Print
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="exportReport()">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% block report_content %}
+                    {% endblock %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateRangeSelect = document.querySelector('select[name="date_range"]');
+    const customDateRange = document.querySelector('.custom-date-range');
+
+    dateRangeSelect.addEventListener('change', function() {
+        if (this.value === 'custom') {
+            customDateRange.classList.remove('d-none');
+        } else {
+            customDateRange.classList.add('d-none');
+        }
+    });
+});
+
+function exportReport() {
+    // Implementation for exporting to Excel/PDF
+}
+</script>
+{% endblock %}
