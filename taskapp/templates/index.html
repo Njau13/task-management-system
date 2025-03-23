@@ -70,7 +70,7 @@
 <body style="background-color: white;">
     <!--Sidebar-->
     <div class="sidebar bg-dark text-white d-flex flex-column p-3 vh-100" style="width: 200px; position: fixed; top: 0; left: 0;">
-        <h4 class="text-center">{{ request.user }}</h4>
+        <h4 class="text-center"><a href="javascript:window.history.back();" class="text-primary">{{ request.user }}</a></h4>
         <hr>
         <ul class="nav flex-column flex-grow-1">
             
@@ -79,13 +79,13 @@
             </li>
 
             {% if request.user.role == "manager" %}
-                <li class="nav-item">
-                    <a href="{% url 'manager_dashboard' %}" class="nav-link text-white">Projects</a>
+            <li class="nav-item">
+                    <a href="{% url 'manager_dashboard' %}" class="nav-link text-white">Manager Board</a>
                 </li>
             {% elif request.user.role == "employee"%}
                 <li class="nav-item">
                     <a href="{% url 'user_projects' %}" class="nav-link text-white">Projects</a>
-                </li>
+            </li>
             {% endif %}
 
             <li class="nav-item">

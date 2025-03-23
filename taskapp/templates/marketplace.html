@@ -10,34 +10,36 @@
             Add Task
         </a>
     </div>
-
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Title</th>               
-                <th>Details</th>
-                <th>Assigned by</th>
-                <th>Due date</th>
-                <th>Take On</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for task in tasks_marketplace %}
+    <div class="card border-dark shadow mt-4 mb-4">
+        
+        <div class="card-header text-center bg-dark text-white">Market Place</div>
+        <table class="table table-striped">
+            <thead>
                 <tr>
-                    <td style="font-weight: bold;">{{ task.title }}</td>
-                    <td>{{ task.description }}</td> 
-                    <td>{{ task.assigned_by }}</td>
-                    <td>{{ task.due_date }}</td>
-                    <td><a href="{% url 'takeon' task.id %}" class="btn btn-primary" onclick="return confirm('Are you sure you want to take on this task?');">Take On</a></td>
+                    <th>Title</th>               
+                    <th>Details</th>
+                    <th>Assigned by</th>
+                    <th>Due date</th>
+                    <th>Take On</th>
                 </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center">No tasks assigned.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    
+            </thead>
+            <tbody>
+                {% for task in tasks_marketplace %}
+                    <tr>
+                        <td style="font-weight: bold;">{{ task.title }}</td>
+                        <td>{{ task.description }}</td> 
+                        <td>{{ task.assigned_by }}</td>
+                        <td>{{ task.due_date }}</td>
+                        <td><a href="{% url 'takeon' task.id %}" class="btn btn-primary" onclick="return confirm('Are you sure you want to take on this task?');">Take On</a></td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No tasks assigned.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     <!-- Create Task Modal -->
     <div class="modal fade" id="createTaskModal" tabindex="-1" aria-labelledby="createTaskModalLabel" aria-hidden="true">
         <div class="modal-dialog">

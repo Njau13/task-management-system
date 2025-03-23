@@ -9,19 +9,19 @@
                 </div>
                 <div class="card-body p-4">
                     <form method="POST" class="needs-validation" novalidate>
-                        {% csrf_token %}
+        {% csrf_token %}
                         
                         <!-- Project Name -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">Project Name</label>
-                            {{ form.name }}
-                        </div>
+            {{ form.name }}
+        </div>
 
                         <!-- Project Description -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">Description</label>
-                            {{ form.description }}
-                        </div>
+            {{ form.description }}
+        </div>
 
                         <!-- Project Timeline -->
                         <div class="row mb-4">
@@ -31,8 +31,8 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">End Date</label>
-                                {{ form.due_date }}
-                            </div>
+            {{ form.due_date }}
+        </div>
                         </div>
 
                         <!-- Project Objectives -->
@@ -78,7 +78,7 @@
                 </div>
             </div>
         </div>
-    </div>
+        </div>
 </div>
 
 <script>

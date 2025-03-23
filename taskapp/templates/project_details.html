@@ -24,6 +24,7 @@
                 </div>
             </div>
 
+            {% if request.user == project.manager or project.is_leader %}
             <!-- Milestones -->
             <div class="card shadow-sm mb-4">
                 <div class="card-header">
@@ -70,6 +71,7 @@
                     </div>
                 </div>
             </div>
+            {%endif%}
         </div>
 
         <!-- Sidebar -->
@@ -107,9 +109,17 @@
                     
                     <!-- Progress Bar -->
                     <div class="progress mb-4">
-                        <div id="progress-bar" class="progress-bar" role="progressbar" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100">
-                        {{ progress|floatformat:0 }}% Complete
+                        <div id="progress-bar" 
+                             class="progress-bar text-dark" 
+                             role="progressbar" 
+                             aria-valuenow="{{ progress|floatformat:0 }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            {{ progress|floatformat:0 }}% Complete
                         </div>
+                        <script>
+                            document.getElementById("progress-bar").style.width = "{{ progress|default:0|floatformat:0 }}%";
+                        </script>
                     </div>
                     <div class="small">
                         <div class="d-flex justify-content-between">
@@ -124,7 +134,7 @@
 </div>
 
 <!-- Project Management Section -->
-{% if request.user == project.manager %}
+{% if request.user == project.manager or project.is_leader %}
 <div class="container mt-4 mb-5">
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
@@ -132,67 +142,35 @@
         </div>
         <div class="card-body">
             <ul class="nav nav-tabs" id="projectManagementTabs" role="tablist">
+                
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="members-tab" data-bs-toggle="tab" data-bs-target="#members" type="button">
-                        Manage Members
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="milestones-tab" data-bs-toggle="tab" data-bs-target="#milestones" type="button">
+                    <button class="nav-link active" id="milestones-tab" data-bs-toggle="tab" data-bs-target="#milestones" type="button">
                         Manage Milestones
                     </button>
                 </li> 
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="status-tab" data-bs-toggle="tab" data-bs-target="#status" type="button">
-                        Update Status
-                    </button>
-                </li>
+                
+                
+                    <li class="nav-item" role="presentation">
+                        {% if request.user == project.manager %}
+                        <button class="nav-link " id="members-tab" data-bs-toggle="tab" data-bs-target="#members" type="button">
+                            Manage Members
+                        </button>
+                        {% endif %}
+
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        {% if request.user == project.manager %}
+                        <button class="nav-link" id="status-tab" data-bs-toggle="tab" data-bs-target="#status" type="button">
+                            Update Status
+                        </button>
+                        {% endif %}
+                    </li>
+               
             </ul>
 
             <div class="tab-content p-3" id="projectManagementContent">
-                <!-- Members Tab -->
-                <div class="tab-pane fade show active" id="members">
-                    <form method="POST" action="{% url 'update_project_members' project.id %}">
-                        {% csrf_token %}
-                        <div id="membersList">
-                            {% for member in project.project_members.all %}
-                            <div class="member-item card mb-3">
-                                <div class="card-body">
-                                    <div class="row align-items-center">
-                                        <div class="col-md-4">
-                                            <select class="form-select" name="member_ids[]" required>
-                                                <option value="">Select Member</option>
-                                                {% for user in available_users %}
-                                                    <option value="{{ user.id }}" 
-                                                        {% if user.id == member.user.id %}selected{% endif %}>
-                                                        {{ user.get_full_name|default:user.username }}
-                                                    </option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <select class="form-select" name="member_roles[]">
-                                                <option value="member" {% if member.role == 'member' %}selected{% endif %}>Team Member</option>
-                                                <option value="leader" {% if member.role == 'leader' %}selected{% endif %}>Team Leader</option>
-                                                <option value="observer" {% if member.role == 'observer' %}selected{% endif %}>Observer</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <button type="button" class="btn btn-danger btn-sm remove-member">Remove Member</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        <button type="button" class="btn btn-outline-primary mb-3" id="addMember">
-                            + Add New Member
-                        </button>
-                        <button type="submit" class="btn btn-primary">Save Member Changes</button>
-                    </form>
-                </div>
                 <!-- Milestones Tab -->
-                <div class="tab-pane fade" id="milestones">
+                <div class="tab-pane fade show active" id="milestones">
                     <form method="POST" action="{% url 'update_project_milestones' project.id %}">
                         {% csrf_token %}
                         <div id="milestonesList">
@@ -234,6 +212,48 @@
                     </form>
                 </div>
 
+                <!-- Members Tab -->
+                <div class="tab-pane fade " id="members">
+                    <form method="POST" action="{% url 'update_project_members' project.id %}">
+                        {% csrf_token %}
+                        <div id="membersList">
+                            {% for member in project.project_members.all %}
+                            <div class="member-item card mb-3">
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <select class="form-select" name="member_ids[]" required>
+                                                <option value="">Select Member</option>
+                                                {% for user in available_users %}
+                                                    <option value="{{ user.id }}" 
+                                                        {% if user.id == member.user.id %}selected{% endif %}>
+                                                        {{ user.get_full_name|default:user.username }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <select class="form-select" name="member_roles[]">
+                                                <option value="member" {% if member.role == 'member' %}selected{% endif %}>Team Member</option>
+                                                <option value="leader" {% if member.role == 'leader' %}selected{% endif %}>Team Leader</option>
+                                                <option value="observer" {% if member.role == 'observer' %}selected{% endif %}>Observer</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <button type="button" class="btn btn-danger btn-sm remove-member">Remove Member</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-outline-primary mb-3" id="addMember">
+                            + Add New Member
+                        </button>
+                        <button type="submit" class="btn btn-primary">Save Member Changes</button>
+                    </form>
+                </div>
+                
                 
 
                 <!-- Status Tab -->
@@ -350,7 +370,7 @@
                         <label class="form-label">Assign To</label>
                         <select class="form-select" name="assigned_to">
                             <option value="">Select Team Member</option>
-                            {% for member in project.project_members.all %}
+                            {% for member in project_members %}
                                 <option value="{{ member.user.id }}">
                                     {{ member.user.get_full_name|default:member.user.username }} ({{ member.get_role_display }})
                                 </option>
@@ -407,7 +427,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Convert Django template dates to JavaScript Date objects
     const projectStartDate = new Date('{{ project.start_date|date:"Y-m-d" }}');
-    const projectEndDate = new Date('{{ project.end_date|date:"Y-m-d" }}');
+    const projectEndDate = new Date('{{ project.due_date|date:"Y-m-d" }}');
 
     function validateMilestoneDate(dateInput) {
         const selectedDate = new Date(dateInput.value);

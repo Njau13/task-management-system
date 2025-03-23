@@ -40,4 +40,5 @@ urlpatterns = [
     path('reports/tasks/', views.task_reports, name='task_reports'),
     path('reports/performance/', views.performance_reports, name='performance_reports'),
     path('reports/export/<str:report_type>/', views.export_report, name='export_report'),
+    path('reports/project/<int:project_id>/', views.this_project, name='this_project'),
 ]

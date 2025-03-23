@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 #from django.views.generic import DetailView
 from django.views import View
-from django.db.models import Q
+from django.db.models import Q, Count, Avg, F, ExpressionWrapper, fields, DurationField
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware, localtime
 from django.urls import reverse
@@ -15,9 +15,9 @@ from django.db.utils import IntegrityError
 from django.http import HttpResponseForbidden
 from .utils import create_notification
 from django.utils import timezone
-from django.db.models import Count, Avg, F, ExpressionWrapper, fields, DurationField
 from django.db.models.functions import ExtractDay
 import json
+
 
 User = get_user_model()
 
@@ -109,8 +109,15 @@ def takeon(request, task_id):
 
 @login_required
 def manager_dashboard(request):
-    tasks_assigned=Task.objects.filter(assigned_by=request.user,project__isnull=True ).exclude(assigned_to=request.user)
+    tasks_assigned=Task.objects.filter(assigned_by=request.user,project__isnull=True, status__in=["pending", "in_progress"] ).exclude(assigned_to=request.user)
+    tasks_review=Task.objects.filter(assigned_by=request.user,status__in=["submitforreview", "under_review"]).exclude(assigned_to=request.user)
     projects = Project.objects.filter(manager=request.user)
+
+    for project in projects:
+            project.total_tasks = project.tasks.count()
+            project.completed_tasks = project.tasks.filter(status='completed').count()
+            project.progress = (project.completed_tasks / project.total_tasks * 100) if project.total_tasks > 0 else 0
+    
     if request.method == "POST":
         form = TaskForm(request.POST)
         if form.is_valid():
@@ -141,7 +148,7 @@ def manager_dashboard(request):
             
     else:
         form = TaskForm()
-    return render(request, "projects.html", {"projects": projects, "form": form,"tasks_assigned": tasks_assigned, })
+    return render(request, "projects.html", {"projects": projects, "form": form,"tasks_assigned": tasks_assigned,"tasks_review":tasks_review })
 
 @login_required
 def project_detail(request, project_id):
@@ -149,7 +156,10 @@ def project_detail(request, project_id):
     objectives = project.project_objectives.all()
     stakeholders = project.project_stakeholders.all()
     tasks = project.tasks.all().order_by("due_date")
+    overdue = localtime().date()
+    tasks_overdue= project.tasks.filter(due_date__date__lt=overdue).exclude(status="completed")
     form = TaskForm(request.POST)
+    project_members = project.project_members.exclude(role="observer")
 
     project.is_leader = project.project_members.filter(user=request.user, role='leader').exists()
 
@@ -193,7 +203,9 @@ def project_detail(request, project_id):
         "project": project,
         "tasks": tasks,
         "progress": progress,
-        "form": form
+        "form": form,
+        "tasks_overdue":tasks_overdue,
+        "project_members":project_members
     })
 
 @login_required
@@ -315,6 +327,13 @@ def create_project(request):
 def create_project_task(request, project_id):
     project = get_object_or_404(Project, id=project_id)
     
+    # Check if user is manager or team leader
+    is_authorized = (project.manager == request.user or project.project_members.filter(user=request.user, role='leader').exists())
+    
+    if not is_authorized:
+        messages.error(request, "You don't have permission to create tasks.")
+        return redirect('project_details', project_id=project.id)
+
     if request.method == "POST":
         milestone_id = request.POST.get('milestone_id')
         
@@ -449,8 +468,6 @@ def request_update(request, task_id):
     """Manager requests an update from the assigned user."""
     task = get_object_or_404(Task, id=task_id)
 
-    if request.user != task.assigned_by:
-        return redirect("employee_dashboard")  # Only the manager can request updates
 
     task.update_requested = True
     task.update_response = None
@@ -486,8 +503,9 @@ def provide_update(request, task_id):
             return redirect("taskdetail", task_id=task_id)
     else:
         form = ProvideUpdateForm(instance=task)
+        
 
-    return render(request, "provide_update.html", {"task": task, "form": form})
+    return render(request, "taskdetail.html", {"task": task, "form": form})
 
 def task_detail(request, task_id):
     task = get_object_or_404(Task, id=task_id)
@@ -502,6 +520,16 @@ def task_detail(request, task_id):
         if 'status' in request.POST or 'update_response' in request.POST:
             if assign_form.is_valid():
                 assign_form.save()
+                task.update_requested = False
+
+                create_notification(
+                    user=task.assigned_by,
+                    notification_type='update_provided',
+                    title='Task Update Provided',
+                    message=f"{request.user.get_full_name() or request.user.username} provided an update for task: {task.title}",
+                    project=task.project,
+                    task=task
+                )
                 messages.success(request, "Task updated successfully!")
                 return redirect(request.path)  # Refresh page
             else:
@@ -536,16 +564,15 @@ class TaskDetailView(View):
         task.save()
         return redirect("employee_dashboard")
 
-
-
-
 def testlist(request):
     return render(request, "tests.html")
 
 @login_required
 def project_details(request, project_id):
     project = get_object_or_404(Project, id=project_id)
-    
+
+    project_members = project.project_members.exclude(role="observer")
+    project.is_leader = project.project_members.filter(user=request.user, role='leader').exists()
     # Calculate project progress
     total_tasks = project.tasks.count()
     completed_tasks = project.tasks.filter(status='completed').count()
@@ -560,6 +587,7 @@ def project_details(request, project_id):
         'completed_tasks': completed_tasks,
         'progress': round(progress, 1),
         'available_users': available_users,
+        'project_members': project_members
     }
     
     return render(request, 'project_details.html', context)
@@ -703,6 +731,7 @@ def submit_task_review(request, task_id):
 
             # Update task status
             task.status = 'under_review'
+            task.update_requested = False
             task.save()
 
             # Create notification for task assigner
@@ -742,7 +771,9 @@ def review_task(request, task_id):
                 notification_message = f'Task "{task.title}" needs some changes and has been returned. Comment:"{review.reviewer_comment}"'
 
             review.save()
+            task.update_requested = False
             task.save()
+            
 
             # Create notification for task assignee
             create_notification(
@@ -759,12 +790,11 @@ def review_task(request, task_id):
 
     return redirect('assign_task', task_id=task.id)
 
-from django.db.models import Count, Avg, Q
-from django.utils import timezone
-from datetime import timedelta
 
 @login_required
 def project_reports(request):
+    projects = Project.objects.all()
+    
     # Get date range from filters
     date_range = request.GET.get('date_range', '30')
     if date_range == 'custom':
@@ -778,6 +808,7 @@ def project_reports(request):
     projects = Project.objects.filter(
         Q(start_date__gte=start_date) | Q(due_date__lte=due_date)
     )
+    
 
     # Calculate statistics
     total_projects = projects.count()
@@ -793,7 +824,10 @@ def project_reports(request):
         project.total_tasks = project.tasks.count()
         project.completed_tasks = project.tasks.filter(status='completed').count()
         project.progress = (project.completed_tasks / project.total_tasks * 100) if project.total_tasks > 0 else 0
+
+        project.project_members_count = project.project_members.all().count()  # Store member count in the project object
         
+
         # Add status color for badges
         project.status_color = {
             'pending': 'warning',
@@ -810,9 +844,69 @@ def project_reports(request):
         'completed_projects': completed_projects,
         'overdue_projects': overdue_projects,
         'projects': projects,
+        
     }
 
     return render(request, 'reports/projectreports.html', context)
+
+@login_required
+def this_project(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    # Get project tasks with detailed metrics
+    tasks = project.tasks.all().order_by("due_date")
+    
+    # Calculate task statistics
+    task_stats = {
+        'total': tasks.count(),
+        'completed': tasks.filter(status='completed').count(),
+        'in_progress': tasks.filter(status='in_progress').count(),
+        'pending': tasks.filter(status='pending').count(),
+        'overdue': tasks.filter(due_date__lt=timezone.now()).exclude(status='completed').count()
+    }
+    
+    # Calculate completion rate
+    task_stats['completion_rate'] = (task_stats['completed'] / task_stats['total'] * 100) if task_stats['total'] > 0 else 0
+    
+    for task in tasks:
+        # Add status color for badges
+        task.status_color = {
+            'pending': 'warning',
+            'in_progress': 'primary',
+            'completed': 'success',
+            'under_review': 'secondary',
+        }.get(task.status, 'info')
+
+    # Get team members with their task statistics
+    team_members = project.project_members.all()
+    member_stats = []
+    
+    for member in team_members:
+        member_tasks = tasks.filter(assigned_to=member.user)
+        completed_tasks = member_tasks.filter(status='completed')
+        
+        stats = {
+            'member': member,
+            'total_tasks': member_tasks.count(),
+            'completed_tasks': completed_tasks.count(),
+            'completion_rate': (completed_tasks.count() / member_tasks.count() * 100) if member_tasks.count() > 0 else 0,
+            'overdue_tasks': member_tasks.filter(due_date__lt=timezone.now()).exclude(status='completed').count()
+        }
+        member_stats.append(stats)
+    
+    # Get milestone progress
+    milestones = project.project_milestones.all().order_by('due_date')
+    
+    context = {
+        'project': project,
+        'task_stats': task_stats,
+        'member_stats': member_stats,
+        'milestones': milestones,
+        'tasks': tasks,
+        'report_date': timezone.now()
+    }
+    
+    return render(request, 'reports/thisproject.html', context)
+
 
 @login_required
 def team_reports(request):

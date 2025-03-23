@@ -54,9 +54,9 @@
                 <div class="card shadow-sm p-4">
                     <!-- Subtasks Section -->
                     <div class="card mb-3">
-                        <div class="card-header">
+                    <div class="card-header">
                             <h6>Sub-tasks</h6>
-                        </div>
+                    </div>
                     
                     <div class="card-body">
                         {% for subtask in task.subtasks.all %}
@@ -90,7 +90,7 @@
                                 <button type="submit" class="btn btn-dark w-100 mt-3" name="subtask_form">Save Subtasks</button>
                             </div>
                         </form>
-                    </div>
+                            </div>
                     </div>
                     <div class="card mb-3">
                         <div class="card-header">
@@ -99,11 +99,11 @@
                         <div class="card-body">
                             <!-- Reassign Task Form -->
                             <form method="post" action="{% url 'assign_task' task.id %}">
-                                {% csrf_token %}
-                                <div class="mb-3">
-                                    <label class="form-label"><strong>Assign To:</strong></label>
-                                    {{ form.assigned_to }}
-                                </div>
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Assign To:</strong></label>
+                            {{ form.assigned_to }}
+                        </div>
                                 <button type="submit" class="btn btn-primary" name="reassign_form">Update Assignment</button>
                             </form>
                         </div>  
@@ -123,7 +123,7 @@
                 <div class="card mt-3">
                     <div class="card-header bg-info text-white">
                         <h5 class="mb-0">Review Submission</h5>
-                    </div>
+                        </div>
                     <div class="card-body">
                         {% with latest_review=task.reviews.last %}
                             <p><strong>Submitted by:</strong> {{ latest_review.submitted_by.username }}</p>
@@ -157,8 +157,8 @@
                                     <button type="submit" name="action" value="reject" class="btn btn-danger">
                                         Return for Changes
                                     </button>
-                                </div>
-                            </form>
+                        </div>
+                    </form>
                         {% endwith %}
                     </div>
                 </div>
@@ -166,7 +166,7 @@
 
                 {% if task.status != "completed" %}
                     <!-- Update Request Section -->
-                    {% if request.user == task.assigned_by %}
+                {% if request.user == task.assigned_by %}
                         <form method="post" action="{% url 'request_update' task.id %}">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-warning mt-3 w-100">Request Update</button>
@@ -182,24 +182,24 @@
                                 <button type="submit" class="btn btn-primary">Submit Update</button>
                             </div>
                         </form>
-                    {% endif %}
+                {% endif %}
 
-                    {% if task.update_requested %}
-                        <div class="alert alert-info mt-3">
+                {% if task.update_requested %}
+                    <div class="alert alert-info mt-3">
                             <strong>Update Requested!</strong> An update has been requested for this task.
-                        </div>
-                    {% endif %}
+                    </div>
+                {% endif %}
 
 
-                    {% if task.update_response %}
-                        <div class="alert alert-success mt-3">
+                {% if task.update_response %}
+                    <div class="alert alert-success mt-3">
                             <strong>Update Response:</strong> {{ task.update_response }}
                             {% if request.user == task.assigned_by %}
                                 <!-- Add a button for manager to request another update -->
                                 <a href="{% url 'request_update' task.id %}" class="btn btn-warning btn-sm float-end">Request Another Update</a>
                             {% endif %}
-                        </div>
-                    {% endif %}
+                    </div>
+                {% endif %}
                 {%endif%}
                 </div>
                 

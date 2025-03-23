@@ -1,0 +1,194 @@
+{% extends "reports/dashboard.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex">
+        <h1 class="mt-4">Project Report: {{ project.name }}</h1>
+        <button class="btn btn-outline-primary ms-auto" onclick="window.print()">
+            <i class="fas fa-print"></i> Print
+        </button>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-project-diagram me-1"></i>
+            Project Overview
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-primary text-white mb-4">
+                        <div class="card-body">
+                            Overall Progress
+                            <h2 class="mb-0">{{ task_stats.completion_rate|floatformat:1 }}%</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-success text-white mb-4">
+                        <div class="card-body">
+                            Completed Tasks
+                            <h2 class="mb-0">{{ task_stats.completed }}/{{ task_stats.total }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-warning text-white mb-4">
+                        <div class="card-body">
+                            In Progress
+                            <h2 class="mb-0">{{ task_stats.in_progress }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-danger text-white mb-4">
+                        <div class="card-body">
+                            Overdue Tasks
+                            <h2 class="mb-0">{{ task_stats.overdue }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Details -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Project Details</h5>
+                    <table class="table">
+                        <tr>
+                            <th>Manager:</th>
+                            <td>{{ project.manager }}</td>
+                        </tr>
+                        <tr>
+                            <th>Start Date:</th>
+                            <td>{{ project.start_date|date:"M d, Y" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Due Date:</th>
+                            <td>{{ project.due_date|date:"M d, Y" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td><span class="badge bg-info">{{ task.get_status_display }}</span</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Team Members Performance -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-users me-1"></i>
+                    Team Performance
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Team Member</th>
+                                <th>Role</th>
+                                <th>Tasks Assigned</th>
+                                <th>Completed</th>
+                                <th>Completion Rate</th>
+                                <th>Overdue Tasks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stats in member_stats %}
+                            <tr>
+                                <td style="font-weight: bold;">{{ stats.member.user }}</td>
+                                <td>{{ stats.member.role|title }}</td>
+                                <td>{{ stats.total_tasks }}</td>
+                                <td>{{ stats.completed_tasks }}</td>
+                                <td>{{ stats.completion_rate|floatformat:1 }}%</td>
+                                <td>{{ stats.overdue_tasks }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Milestones -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-flag me-1"></i>
+                    Milestones
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Milestone</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for milestone in milestones %}
+                            <tr>
+                                <td style="font-weight: bold;">{{ milestone.title }}</td>
+                                <td>{{ milestone.due_date|date:"M d, Y" }}</td>
+                                <td>
+                                    <span class="badge {% if milestone.completed %}bg-success{% else %}bg-warning{% endif %}">
+                                        {{ milestone.completed|yesno:"Completed,Pending" }}
+                                    </span>
+                                </td>
+                                <td>{{ milestone.description }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tasks List -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-tasks me-1"></i>
+                    Tasks Overview
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered" id="tasksTable">
+                        <thead>
+                            <tr>
+                                <th>Task</th>
+                                <th>Assigned To</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in tasks %}
+                            <tr>
+                                <td style="font-weight: bold;">{{ task.title }}</td>
+                                <td>{{ task.assigned_to }}</td>
+                                <td>{{ task.due_date|date:"M d, Y" }}</td>
+                                <td>
+                                    <span class="badge bg-{{ task.status_color }}">
+                                        {{ task.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>{{ task.priority|title }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        $('#tasksTable').DataTable();
+    });
+</script>
+{% endblock %}

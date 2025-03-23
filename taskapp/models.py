@@ -141,6 +141,7 @@ class Notification(models.Model):
         ('project_invite', 'Project Invitation'),
         ('task_assigned', 'Task Assigned'),
         ('update_requested', 'Update Requested'),
+        ('update_provided', 'Update Provided'),
         ('task_completed', 'Task Completed'),
         ('milestone_due', 'Milestone Due'),
     )

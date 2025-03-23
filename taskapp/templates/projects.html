@@ -6,36 +6,42 @@
 <div class="container">
     <div class="d-flex">
         <h3>Ongoing Projects</h3>
-        <a href="{% url 'create_project' %}" class="btn btn-primary ms-auto" >Start New Project</a>
+        <a href="{% url 'create_project' %}" class="btn btn-dark ms-auto" >Start New Project</a>
     </div>
     
-    <div class="d-flex flex-wrap">
-        {% for project in projects %}
-            <div class="card m-2 border-dark shadow" style="width: 20rem;">
-                <div class="card-header bg-dark text-white">
-                    <a href="{% url 'project_detail' project.id %}" style="font-weight: bold;">{{ project.name }}</a>
-                </div>
-                <div class="card-body">
-                        <p><a href="{% url 'project_detail' project.id %}" class="card-text small">{{ project.description }}</a></p>
-                        <p class="card-text small">{{ project.due_date }}</p>
-                </div>
-            </div>
-        {%empty%}
-            <div class="card-body">
-                <h5 class="card-title">No on-going projects</h5>
-            </div>
-        {% endfor %}
-    </div>
-    <div class="d-flex">
-        <h3>Assigned Tasks</h3>
+    
+    
+    <div class="card border-dark shadow mt-4 mb-4">
+        <div class="card-header text-center bg-dark text-white">Ongoing Projects</div>
+    
+        <table class="table table-hover table-striped p-3">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Progress</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for project in projects %}
+                    <tr>
+                        <td> <a href="{% url 'project_detail' project.id %}" style="font-weight: bold;">{{ project.name }}</a></td>
+                        <td style="color: gray;">{{ project.progress|floatformat:0 }}% complete</td>
+                        <td>{{ project.due_date }} </td>
+                        <td>{{ project.status }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center">No ongoing projects.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
         
-        <a data-bs-toggle="modal" data-bs-target="#createTaskModal" class="btn btn-primary ms-auto">
-            Add Task
-        </a>
-    </div>
-    
-      
+    </div>  
     <div class="card border-primary shadow mt-4 mb-4">
+        
         <div class="card-header text-center bg-primary text-white">Assigned Tasks</div>
     
         <table class="table table-hover table-striped p-3">
@@ -58,6 +64,33 @@
                 {% empty %}
                     <tr>
                         <td colspan="3" class="text-center">No tasks assigned.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+    </div>
+    <div class="card border-success shadow mt-4 mb-4">
+        <div class="card-header text-center bg-success text-white">Pending reviews</div>
+    
+        <table class="table table-hover table-striped p-3">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Assigned To</th>
+                    <th>Due Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks_review %}
+                    <tr>
+                        <td> <a href="{% url 'assign_task' task.id %}" style="font-weight: bold;">{{ task.title }}</a></td>
+                        <td>{{ task.assigned_to }}</td>
+                        <td>{{ task.due_date }} </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center">No tasks pending review.</td>
                     </tr>
                 {% endfor %}
             </tbody>
