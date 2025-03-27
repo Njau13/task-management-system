@@ -91,7 +91,8 @@ class TaskReviewForm(forms.ModelForm):
 class TaskReviewResponseForm(forms.ModelForm):
     class Meta:
         model = TaskReview
-        fields = ['reviewer_comment', 'status', 'attachments']
+        fields = ['reviewer_comment', 'attachments','ratings']
         widgets = {
             'reviewer_comment': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Provide feedback...'}),
+            "ratings": forms.NumberInput(attrs={"min": 1, "max":5, "step": 1}),
         }

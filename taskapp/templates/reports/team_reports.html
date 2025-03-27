@@ -42,34 +42,40 @@
             <div class="card-body">
                 <h6 class="card-title">Team Member Performance</h6>
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover" id="teamTable">
                         <thead>
                             <tr>
                                 <th>Member</th>
-                                <th>Role</th>
                                 <th>Projects</th>
                                 <th>Tasks Completed</th>
                                 <th>Tasks In Progress</th>
-                                <th>On-Time Completion</th>
+                                <th>Total Tasks</th>
+                                <th>Completion Rate</th>
+                                <th>On-Time Rate</th>
                                 <th>Performance Score</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for member in team_members %}
                             <tr>
-                                <td>{{ member.get_full_name|default:member.username }}</td>
-                                <td>{{ member.role }}</td>
+                                <td>{{ member.user }}</td>
                                 <td>{{ member.project_count }}</td>
                                 <td>{{ member.completed_tasks }}</td>
                                 <td>{{ member.in_progress_tasks }}</td>
-                                <td>{{ member.on_time_completion_rate }}%</td>
+                                <td>{{ member.total_tasks }}</td>
+                                <td>{{ member.completion_rate|floatformat:1 }}%</td>
+                                <td>{{ member.on_time_rate|floatformat:1 }}%</td>
                                 <td>
+                                    <span style="font-size: 10pt ;" class="text-danger">{{ member.performance_score|floatformat:1 }}% Complete</span>
                                     <div class="progress">
-                                        <div class="progress-bar bg-{{ member.performance_color }}" 
-                                             role="progressbar" >
-                                            {{ member.performance_score }}%
+                                        <div class="progress-bar {% if member.performance_score >= 75 %}bg-success{% elif member.performance_score >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                             role="progressbar" 
+                                             style="width: {{ member.performance_score }}%">
+                                            
                                         </div>
+                                        
                                     </div>
+                                   
                                 </td>
                             </tr>
                             {% endfor %}
@@ -80,18 +86,9 @@
         </div>
     </div>
 
-    <!-- Project Distribution -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <h6 class="card-title">Project Distribution</h6>
-                <canvas id="projectDistributionChart"></canvas>
-            </div>
-        </div>
-    </div>
 
     <!-- Workload Distribution -->
-    <div class="col-md-6 mb-4">
+    <div class="col mb-4">
         <div class="card">
             <div class="card-body">
                 <h6 class="card-title">Workload Distribution</h6>
@@ -101,8 +98,63 @@
     </div>
 </div>
 
+{% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
 <script>
-// Add charts initialization here
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable
+    $('#teamTable').DataTable({
+        order: [[7, 'desc']], // Sort by performance score by default
+        pageLength: 10
+    });
+
+    
+
+    // Workload Distribution Chart
+    const workloadData = {{ chart_data.workload_distribution|safe }}
+    new Chart(document.getElementById('workloadDistributionChart'), {
+        type: 'bar',
+        data: {
+            labels: workloadData.map(item => item.name),
+            datasets: [{
+                label: 'Number of Tasks',
+                data: workloadData.map(item => item.tasks),
+                backgroundColor: '#4e73df',
+                borderColor: '#4e73df',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Tasks'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Team Members'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Task Distribution Across Team'
+                }
+            }
+        }
+    });
+});
 </script>
-{% endblock %} 
+{% endblock %}
+{% endblock %}

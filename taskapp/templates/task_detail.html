@@ -32,7 +32,14 @@
                             {{ task.reviews.last.reviewer_comment }}
                         {% endif %}
                         </p>
-                    {%endif%}
+                        <p class="text-success"><span style="font-weight: bold;">Ratings:</span>
+                            {% if task.reviews.last %}
+                                {{ task.reviews.last.ratings }} Stars
+                            {% endif %}
+                            </p>
+                        <p class="text-success"><span style="font-weight: bold;">Completed On:</span> {{task.completed_on}}</p>
+                        {%endif%}
+
                 </div>
             </div>
         </div>

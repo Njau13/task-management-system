@@ -1,5 +1,16 @@
 {% extends "index.html" %}
 {% block content %}
+<!-- In your base.html or dashboard.html -->
+{% load static %}
+<link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/chart.js' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 <div class="container-fluid mt-4">
     <div class="row">
         <div class="col-md-3">
@@ -18,6 +29,7 @@
                     <a href="{% url 'task_reports' %}" class="list-group-item list-group-item-action {% if report_type == 'tasks' %}active{% endif %}">
                         <i class="fas fa-tasks me-2"></i> Task Reports
                     </a>
+                    
                     <a href="{% url 'performance_reports' %}" class="list-group-item list-group-item-action {% if report_type == 'performance' %}active{% endif %}">
                         <i class="fas fa-chart-line me-2"></i> Performance Reports
                     </a>
@@ -50,14 +62,39 @@
 
                         {% if projects %}
                         <div class="mb-3">
-                            <label class="form-label">Project</label>
-                            <select class="form-select" name="project">
-                                <option value="">All Projects</option>
-                                {% for project in projects %}
-                                    <option value="{{ project.id }}">{{ project.name }}</option>
-                                {% endfor %}
+                            <label  class="form-label">Status:</label>
+                            <select class="form-select" name="status" id="status">
+                                <option value="">All</option>
+                                <option value="pending" {% if selected_status == "pending" %}selected{% endif %}>Pending</option>
+                                <option value="in_progress" {% if selected_status == "in_progress" %}selected{% endif %}>In Progress</option>
+                                <option value="under_review" {% if selected_status == "on hold" %}selected{% endif %}>On Hold</option>
+                                <option value="completed" {% if selected_status == "completed" %}selected{% endif %}>Completed</option>
                             </select>
                         </div>
+                        {% endif %}
+
+                        {% if tasks %}
+                        <div class="mb-3">
+                            <label  class="form-label">Status:</label>
+                            <select class="form-select" name="status" id="status">
+                                <option value="">All</option>
+                                <option value="pending" {% if selected_status == "pending" %}selected{% endif %}>Pending</option>
+                                <option value="in_progress" {% if selected_status == "in_progress" %}selected{% endif %}>In Progress</option>
+                                <option value="under_review" {% if selected_status == "under_review" %}selected{% endif %}>Under Review</option>
+                                <option value="completed" {% if selected_status == "completed" %}selected{% endif %}>Completed</option>
+                            </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="assigned_user">Assigned To:</label>
+                                <select class="form-select" name="assigned_user" id="assigned_user">
+                                    <option value="">All</option>
+                                    {% for user in users %}
+                                        <option value="{{ user.id }}" {% if selected_user == user.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ user.username }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         {% endif %}
 
                         <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
@@ -68,15 +105,15 @@
 
         <div class="col-md-9">
             <!-- Report Content -->
-            <div class="card shadow-sm">
+            <div class="card shadow-sm " id="reportCard">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">{{ report_title }}</h5>
                     <div class="btn-group">
                         <button class="btn btn-outline-primary" onclick="window.print()">
                             <i class="fas fa-print"></i> Print
                         </button>
-                        <button class="btn btn-outline-primary" onclick="exportReport()">
-                            <i class="fas fa-download"></i> Export
+                        <button class="btn btn-outline-primary" onclick="exportCardToPDF('reportCard')">
+                            <i class="fas fa-download"></i> Export to PDF
                         </button>
                     </div>
                 </div>
@@ -88,6 +125,8 @@
         </div>
     </div>
 </div>
+
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -103,8 +142,25 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function exportReport() {
-    // Implementation for exporting to Excel/PDF
+function exportCardToPDF(cardId) {
+    const { jsPDF } = window.jspdf;  // Import jsPDF
+    const card = document.getElementById(cardId);  // Get the card by ID
+
+    if (!card) {
+        alert("Card not found!");
+        return;
+    }
+
+    html2canvas(card, { scale: 2 }).then(canvas => {
+        const pdf = new jsPDF("p", "mm", "a4");
+        const imgData = canvas.toDataURL("image/png");
+        const imgWidth = 190; // Adjust width to fit A4
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+        pdf.save("report.pdf"); // Download the file
+    });
 }
+
 </script>
 {% endblock %}

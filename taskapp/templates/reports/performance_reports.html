@@ -49,8 +49,8 @@
                                 <th>Tasks Completed</th>
                                 <th>On-Time Rate</th>
                                 <th>Quality Score</th>
-                                <th>Efficiency</th>
-                                <th>Collaboration</th>
+                                
+                                
                                 <th>Overall Rating</th>
                             </tr>
                         </thead>
@@ -61,16 +61,12 @@
                                 <td>{{ member.tasks_completed }}</td>
                                 <td>{{ member.on_time_rate }}%</td>
                                 <td>{{ member.quality_score }}/5</td>
-                                <td>{{ member.efficiency_score }}%</td>
-                                <td>{{ member.collaboration_score }}/5</td>
+                                
+                                
                                 <td>
-                                    <!--<div class="progress">
-                                        <div class="progress-bar bg-{{ member.rating_color }}" 
-                                             role="progressbar" 
-                                             style="width: {{ member.overall_rating }}%">
-                                            {{ member.overall_rating }}%
-                                        </div>
-                                    </div>-->
+                                    
+                                    {{ member.overall_rating }}%
+                                        
                                 </td>
                             </tr>
                             {% endfor %}

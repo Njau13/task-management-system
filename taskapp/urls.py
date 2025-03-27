@@ -30,6 +30,7 @@ urlpatterns = [
     path('project/<int:project_id>/update-members/', views.update_project_members, name='update_project_members'),
     path('project/<int:project_id>/update-status/', views.update_project_status, name='update_project_status'),
     path('project/<int:project_id>/create-task/', views.create_project_task, name='create_project_task'),
+    path('project/<int:project_id>/submit-review/', views.submit_project_for_review, name ="submit_project_for_review"),
     path('notifications/', views.notifications_view, name='notifications'),
     path('notifications/mark-read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
     path('notifications/mark-all-read/', views.mark_all_read, name='mark_all_read'),
@@ -41,4 +42,5 @@ urlpatterns = [
     path('reports/performance/', views.performance_reports, name='performance_reports'),
     path('reports/export/<str:report_type>/', views.export_report, name='export_report'),
     path('reports/project/<int:project_id>/', views.this_project, name='this_project'),
+    path('export/pdf/', views.export_to_pdf, name='export_pdf'),
 ]

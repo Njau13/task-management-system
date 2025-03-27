@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.timezone import now
 from datetime import timedelta
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 User = get_user_model()
 
@@ -15,7 +16,7 @@ class Project(models.Model):
     due_date = models.DateTimeField()
     start_date = models.DateTimeField()
     #due_date = models.DateTimeField(default=now() + timedelta(days=7))
-    status = models.CharField(max_length=20, choices=[("pending", "Pending"), ("in_progress", "In Progress"), ("completed", "Completed"), ("on hold", "On Hold")])
+    status = models.CharField(max_length=20, choices=[("pending", "Pending"), ("in_progress", "In Progress"), ("completed", "Completed"), ("on hold", "On Hold"), ("under_review", "Under Review")])
 
     def progress(self):
         tasks = self.tasks.all()
@@ -60,6 +61,7 @@ class Task(models.Model):
     explanation = models.TextField(blank=True, null=True)  # For review process
     reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_tasks")
     reviewed_at = models.DateTimeField(null=True, blank=True)  # Timestamp of review
+    completed_on = models.DateTimeField(null=True, blank=True) 
     milestone = models.ForeignKey(
         'ProjectMilestone', 
         on_delete=models.SET_NULL, 
@@ -177,6 +179,7 @@ class TaskReview(models.Model):
     reviewed_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviewed_reviews', null=True, blank=True)
     reviewer_comment = models.TextField(null=True, blank=True)
     attachments = models.FileField(upload_to="task_reviews/", blank=True, null=True)
+    ratings = models.IntegerField(blank=True, null=True, validators=[MinValueValidator(1), MaxValueValidator(5)], help_text="Rate between 1 and 5")
 
     def __str__(self):
         return f"Review for {self.task.title} - {self.status}"

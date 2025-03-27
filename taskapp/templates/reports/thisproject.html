@@ -1,6 +1,7 @@
 {% extends "reports/dashboard.html" %}
 {% load static %}
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 {% block content %}
 <div class="container-fluid px-4">
     <div class="d-flex">
@@ -10,7 +11,7 @@
         </button>
     </div>
 
-    <div class="card mb-4">
+    <div class="card mb-4" id="reportCard">
         <div class="card-header">
             <i class="fas fa-project-diagram me-1"></i>
             Project Overview
@@ -183,12 +184,35 @@
     </div>
 </div>
 
-{% endblock %}
+
 
 {% block extra_js %}
 <script>
     $(document).ready(function() {
         $('#tasksTable').DataTable();
     });
+
+function exportCardToPDF(cardId) {
+    const { jsPDF } = window.jspdf;  // Import jsPDF
+    const card = document.getElementById(cardId);  // Get the card by ID
+
+    if (!card) {
+        alert("Card not found!");
+        return;
+    }
+
+    html2canvas(card, { scale: 2 }).then(canvas => {
+        const pdf = new jsPDF("p", "mm", "a4");
+        const imgData = canvas.toDataURL("image/png");
+        const imgWidth = 190; // Adjust width to fit A4
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+        pdf.save("report.pdf"); // Download the file
+    });
+}
+
 </script>
+
+{% endblock %}
 {% endblock %}

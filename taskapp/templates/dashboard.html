@@ -171,6 +171,7 @@
                 <tr>
                     <th>Title</th>
                     <th>Description</th>
+                    <th>Completed On</th>
                     <th>Due date</th>
                 </tr>
             </thead>
@@ -179,6 +180,7 @@
                     <tr>
                         <td><a href="{% url 'taskdetail' task.id %}">{{ task.title }}</a></td>               
                         <td>{{ task.description }}</td>
+                        <td>{{ task.completed_on }}</td>
                         <td>{{ task.due_date }}</td>
                     </tr>
                 {% empty %}

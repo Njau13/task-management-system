@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 #from django.views.generic import DetailView
 from django.views import View
-from django.db.models import Q, Count, Avg, F, ExpressionWrapper, fields, DurationField
+from django.db.models import Q, Count, Avg, F, ExpressionWrapper, fields, DurationField, IntegerField, FloatField
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware, localtime
 from django.urls import reverse
@@ -17,7 +17,9 @@ from .utils import create_notification
 from django.utils import timezone
 from django.db.models.functions import ExtractDay
 import json
-
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
 
 User = get_user_model()
 
@@ -759,11 +761,13 @@ def review_task(request, task_id):
             review.reviewed_by = request.user
             review.reviewed_at = timezone.now()
             review.reviewer_comment = form.cleaned_data['reviewer_comment']
+            review.ratings = form.cleaned_data['ratings']
             
             action = request.POST.get('action')
             if action == 'approve':
                 review.status = 'approved'
                 task.status = 'completed'
+                task.completed_on = timezone.now()
                 notification_message = f'Task "{task.title}" has been approved and marked as completed'
             else:
                 review.status = 'rejected'
@@ -790,11 +794,35 @@ def review_task(request, task_id):
 
     return redirect('assign_task', task_id=task.id)
 
+@login_required
+def submit_project_for_review(request, project_id):
+    project =get_object_or_404(Project, id=project_id)
+
+    incomplete_tasks = project.tasks.filter(status__in =["pending", "in_progress", "under_review"]).exists()
+
+    if incomplete_tasks:
+        messages.error(request, "All tasks must be completed before submitting the project.")
+        return redirect("project_detail", project_id=project.id)
+
+    project.status = "under_review"
+    project.save()
+
+    messages.success(request, f"Project '{project.name}' has been submitted for review.")
+
+    create_notification(
+        user=project.manager,
+        notification_type='review_submitted',
+        title='Task Submitted for Review',
+        message=f'Project "{project.name}" has been submitted for review',
+        project=project
+    )
+    return redirect("project_detail", project_id=project_id)
+
+
 
 @login_required
 def project_reports(request):
     projects = Project.objects.all()
-    
     # Get date range from filters
     date_range = request.GET.get('date_range', '30')
     if date_range == 'custom':
@@ -806,7 +834,7 @@ def project_reports(request):
 
     # Get projects based on filters
     projects = Project.objects.filter(
-        Q(start_date__gte=start_date) | Q(due_date__lte=due_date)
+        Q(start_date__gte=start_date) | Q(due_date__lte=due_date) 
     )
     
 
@@ -819,6 +847,12 @@ def project_reports(request):
         status__in=['in_progress', 'pending']
     ).count()
 
+    status = request.GET.get('status', '')  # Get status from query params (default to empty)
+       
+
+    if status:
+        projects = projects.filter(status=status)  # Filter by status if provided
+
     # Enhance project data with additional metrics
     for project in projects:
         project.total_tasks = project.tasks.count()
@@ -826,6 +860,7 @@ def project_reports(request):
         project.progress = (project.completed_tasks / project.total_tasks * 100) if project.total_tasks > 0 else 0
 
         project.project_members_count = project.project_members.all().count()  # Store member count in the project object
+        
         
 
         # Add status color for badges
@@ -919,10 +954,9 @@ def team_reports(request):
         due_date = timezone.now()
         start_date = due_date - timedelta(days=int(date_range))
 
-    # Get team members and their metrics
     team_members = User.objects.filter(
-        Q(project_members__project__start_date__gte=start_date) |
-        Q(project_members__project__due_date__lte=due_date)
+        Q(projectmember__project__start_date__gte=start_date) |
+        Q(projectmember__project__due_date__lte=due_date)
     ).distinct()
 
     member_stats = []
@@ -933,12 +967,12 @@ def team_reports(request):
         
         stats = {
             'user': member,
-            'project_count': member.project_members.count(),
+            'project_count': member.projectmember_set.count(),
             'completed_tasks': completed_tasks.count(),
             'in_progress_tasks': tasks.filter(status='in_progress').count(),
             'total_tasks': tasks.count(),
             'on_time_tasks': completed_tasks.filter(
-                completed_date__lte=F('due_date')
+                reviewed_at__lte=F('due_date')
             ).count(),
         }
         
@@ -959,7 +993,7 @@ def team_reports(request):
     
     completed_tasks = Task.objects.filter(
         status='completed',
-        completed_date__range=[start_date, due_date]
+        reviewed_at__range=[start_date, due_date]
     ).count()
 
     context = {
@@ -975,29 +1009,63 @@ def team_reports(request):
 
     return render(request, 'reports/team_reports.html', context)
 
+
+
+
 @login_required
 def task_reports(request):
     # Get date range from filters
     date_range = request.GET.get('date_range', '30')
     if date_range == 'custom':
         start_date = request.GET.get('date_from')
-        end_date = request.GET.get('date_to')
+        due_date = request.GET.get('date_to')
     else:
-        end_date = timezone.now()
-        start_date = end_date - timedelta(days=int(date_range))
+        due_date = timezone.now()
+        start_date = due_date - timedelta(days=int(date_range))
 
     # Get tasks within date range
     tasks = Task.objects.filter(
-        created_at__range=[start_date, end_date]
+        created_at__range=[start_date, due_date]
     )
+    status = request.GET.get('status', '')  # Get status from query params (default to empty)
+    assigned_user_id = request.GET.get('assigned_user', '') 
+    tasks = Task.objects.all()  # Start with all tasks
+
+    if status:
+        tasks = tasks.filter(status=status)  # Filter by status if provided
+    
+    if assigned_user_id:
+        tasks = tasks.filter(assigned_to_id=assigned_user_id)  # Filter by assigned user
+
+    users = User.objects.all()  # Get all users for the dropdown
+
+    
+
+        
+    for task in tasks:
+        task.status_color = {
+            'pending': 'warning',
+            'in_progress': 'primary',
+            'completed': 'success',
+            'under_review': 'secondary',
+            
+        }.get(task.status, 'info')
 
     # Calculate completion time for completed tasks
     completion_time = tasks.filter(status='completed').annotate(
         duration=ExpressionWrapper(
-            F('completed_date') - F('created_at'),
+            F('reviewed_at') - F('created_at'),
             output_field=DurationField()
         )
-    ).aggregate(avg_days=Avg(ExtractDay('duration')))
+    ).aggregate(
+        avg_days=Avg(
+            ExpressionWrapper(
+                F("duration") / 86400,  # Convert seconds to days
+                output_field=fields.FloatField(),
+            )
+        )
+    )
+    
 
     context = {
         'report_type': 'tasks',
@@ -1011,6 +1079,9 @@ def task_reports(request):
         'avg_completion_time': completion_time['avg_days'] or 0,
         'tasks': tasks,
         'chart_data': get_task_chart_data(tasks),
+        'users': users, 
+        'selected_status': status,
+        'selected_user': assigned_user_id
     }
 
     return render(request, 'reports/task_reports.html', context)
@@ -1021,10 +1092,10 @@ def performance_reports(request):
     date_range = request.GET.get('date_range', '30')
     if date_range == 'custom':
         start_date = request.GET.get('date_from')
-        end_date = request.GET.get('date_to')
+        due_date = request.GET.get('date_to')
     else:
-        end_date = timezone.now()
-        start_date = end_date - timedelta(days=int(date_range))
+        due_date = timezone.now()
+        start_date = due_date - timedelta(days=int(date_range))
 
     # Get team members and calculate performance metrics
     team_members = User.objects.filter(is_active=True)
@@ -1033,7 +1104,7 @@ def performance_reports(request):
     for member in team_members:
         tasks = Task.objects.filter(
             assigned_to=member,
-            created_at__range=[start_date, end_date]
+            created_at__range=[start_date, due_date]
         )
         completed_tasks = tasks.filter(status='completed')
         
@@ -1043,7 +1114,7 @@ def performance_reports(request):
             'tasks_completed': completed_tasks.count(),
             'total_tasks': tasks.count(),
             'on_time_tasks': completed_tasks.filter(
-                completed_date__lte=F('due_date')
+                completed_on__lte=F('due_date')
             ).count(),
         }
         
@@ -1056,25 +1127,32 @@ def performance_reports(request):
             reviews = TaskReview.objects.filter(
                 task__assigned_to=member,
                 status='approved',
-                submitted_at__range=[start_date, end_date]
+                submitted_at__range=[start_date, due_date]
             )
-            data['quality_score'] = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
+            data['quality_score'] = reviews.aggregate(Avg('ratings'))['ratings__avg'] or 0
             
             # Calculate efficiency score
-            avg_completion_time = tasks.filter(status='completed').annotate(
-                duration=ExpressionWrapper(
-                    F('completed_date') - F('created_at'),
-                    output_field=DurationField()
-                )
-            ).aggregate(avg_days=Avg(ExtractDay('duration')))
-            data['efficiency_score'] = 100 - (avg_completion_time['avg_days'] or 0) * 5  # Adjust formula as needed
+            #avg_completion_time = tasks.filter(status='completed').annotate(
+            #    duration=ExpressionWrapper(
+              #      F('completed_on') - F('created_at'),
+              #      output_field=DurationField()
+              #  )
+            #).aggregate(
+            #    avg_days=Avg(
+              #      ExpressionWrapper(
+              #          F("duration") / 86400,  # Convert seconds to days
+               #         output_field=fields.FloatField(),
+               #     )
+               # )
+            #
+            #data['efficiency_score'] = 100 - (avg_completion_time['avg_days'] or 0) * 2  # Adjust formula as needed
             
             # Overall rating
             data['overall_rating'] = (
-                data['completion_rate'] * 0.3 +
+                data['completion_rate'] * 0.4 +
                 data['on_time_rate'] * 0.3 +
-                data['quality_score'] * 0.2 +
-                data['efficiency_score'] * 0.2
+                data['quality_score'] * 0.3 
+                #data['efficiency_score'] * 0.2
             )
         else:
             data['completion_rate'] = data['on_time_rate'] = data['quality_score'] = \
@@ -1091,7 +1169,7 @@ def performance_reports(request):
         'avg_on_time_completion': sum(d['on_time_rate'] for d in performance_data) / len(performance_data) if performance_data else 0,
         'avg_task_quality': sum(d['quality_score'] for d in performance_data) / len(performance_data) if performance_data else 0,
         'productivity_score': sum(d['overall_rating'] for d in performance_data) / len(performance_data) if performance_data else 0,
-        'chart_data': get_performance_chart_data(performance_data, start_date, end_date),
+        'chart_data': get_performance_chart_data(performance_data, start_date, due_date),
     }
 
     return render(request, 'reports/performance_reports.html', context)
@@ -1107,7 +1185,7 @@ def get_team_chart_data(team_members, start_date, end_date):
     workload_data = []
     for member in team_members:
         workload_data.append({
-            'name': member.get_full_name() or member.username,
+            'name': member.username or member.get_full_name(), 
             'tasks': Task.objects.filter(assigned_to=member).count()
         })
 
@@ -1141,7 +1219,7 @@ def get_performance_chart_data(performance_data, start_date, end_date):
         daily_stats = {
             'date': current_date.strftime('%Y-%m-%d'),
             'completion_rate': Task.objects.filter(
-                completed_date__date=current_date,
+                reviewed_at__date=current_date,
                 status='completed'
             ).count(),
         }
@@ -1163,3 +1241,28 @@ def get_performance_chart_data(performance_data, start_date, end_date):
 def export_report(request, report_type):
     """Handle report export to Excel/PDF"""
     pass
+
+def export_to_pdf(request):
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="tasks_report.pdf"'
+
+    pdf = canvas.Canvas(response, pagesize=A4)
+    width, height = A4
+
+    pdf.setFont("Helvetica-Bold", 14)
+    pdf.drawString(200, height - 50, "Tasks Report")
+
+    pdf.setFont("Helvetica", 12)
+    y = height - 100  # Start position for table data
+
+    tasks = Task.objects.all()
+    for task in tasks:
+        pdf.drawString(50, y, f"{task.title} - {task.status} - {task.assigned_to}")
+        y -= 20  # Move to the next line
+
+        if y < 50:  # Prevent writing outside the page
+            pdf.showPage()
+            y = height - 50
+
+    pdf.save()
+    return response
