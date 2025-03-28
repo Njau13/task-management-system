@@ -29,7 +29,9 @@
                         <td> <a href="{% url 'project_detail' project.id %}" style="font-weight: bold;">{{ project.name }}</a></td>
                         <td style="color: gray;">{{ project.progress|floatformat:0 }}% complete</td>
                         <td>{{ project.due_date }} </td>
-                        <td>{{ project.status }}</td>
+                        <td><span class="badge bg-{{ project.status_color }}">
+                            {{ project.get_status_display }}
+                        </span></td>
                     </tr>
                 {% empty %}
                     <tr>
@@ -48,18 +50,20 @@
             <thead>
                 <tr>
                     <th>Title</th>
-                    <th>Status</th>
-                    <th>Due Date</th>
                     <th>Assigned To</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
                 </tr>
             </thead>
             <tbody>
                 {% for task in tasks_assigned %}
                     <tr>
                         <td> <a href="{% url 'assign_task' task.id %}" style="font-weight: bold;">{{ task.title }}</a></td>
-                        <td>{{ task.status }}</td>
-                        <td>{{ task.due_date }} </td>
                         <td>{{ task.assigned_to }}</td>
+                        <td>{{ task.due_date }} </td>
+                        <td><span class="badge bg-{{ task.status_color }}">
+                            {{ task.get_status_display }}
+                        </span></td>
                     </tr>
                 {% empty %}
                     <tr>

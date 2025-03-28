@@ -66,7 +66,7 @@
                                 <td>{{ member.completion_rate|floatformat:1 }}%</td>
                                 <td>{{ member.on_time_rate|floatformat:1 }}%</td>
                                 <td>
-                                    <span style="font-size: 10pt ;" class="text-danger">{{ member.performance_score|floatformat:1 }}% Complete</span>
+                                    <span style="font-size: 10pt ;" class="text-primary">{{ member.performance_score|floatformat:1 }}% </span>
                                     <div class="progress">
                                         <div class="progress-bar {% if member.performance_score >= 75 %}bg-success{% elif member.performance_score >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
                                              role="progressbar" 

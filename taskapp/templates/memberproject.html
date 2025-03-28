@@ -1,7 +1,8 @@
 {% extends "index.html" %}
 
 {% block content %}
-    <h2>My Projects</h2>
+<div class="card border-dark shadow mt-4 mb-4">
+    <div class="card-header text-center bg-dark text-white">My Projects</div>
     <ul>
         <div class="d-flex flex-wrap">
             {% for project in projects %}
@@ -21,4 +22,5 @@
             {% endfor %}
         </div>
     </ul>
+</div>
 {% endblock %}

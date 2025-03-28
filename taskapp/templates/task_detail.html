@@ -10,6 +10,7 @@
                     <p><strong>Description:</strong> {{ task.description }}</p>
                     <p><strong>Assigned By:</strong> {{ task.assigned_by.username|default:"Unknown" }}</p>
                     <p><strong>Project:</strong> {{ task.project }}</p>
+                    {% if request.user == task.assigned_to %}
                     {% if task.status != "completed" and task.status != "under_review" %}    
                         <!-- Form to update task status -->
                         <form method="post">
@@ -38,7 +39,8 @@
                             {% endif %}
                             </p>
                         <p class="text-success"><span style="font-weight: bold;">Completed On:</span> {{task.completed_on}}</p>
-                        {%endif%}
+                    {%endif%}
+                    {% endif %}
 
                 </div>
             </div>

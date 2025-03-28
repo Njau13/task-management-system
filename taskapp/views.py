@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 #from django.views.generic import DetailView
 from django.views import View
+from django.conf import settings
 from django.db.models import Q, Count, Avg, F, ExpressionWrapper, fields, DurationField, IntegerField, FloatField
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware, localtime
@@ -20,6 +21,7 @@ import json
 from django.http import HttpResponse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
+from django.core.mail import send_mail
 
 User = get_user_model()
 
@@ -30,14 +32,35 @@ def employee_dashboard(request):
     tasks_in_progress = Task.objects.filter(assigned_to=request.user, status="in_progress")
     today = localtime().date()
     tasks_review = Task.objects.filter(assigned_to=request.user, status="under_review")
-    tasks_today =Task.objects.filter(assigned_to=request.user, due_date__date=today) #Uses .date() to match only the date part of due_date (ignores time).
+    tasks_today =Task.objects.filter(assigned_to=request.user, due_date__date=today).exclude(status="completed") #Uses .date() to match only the date part of due_date (ignores time).
     overdue = localtime().date()
     tasks_overdue= Task.objects.filter(assigned_to=request.user, due_date__date__lt=overdue).exclude(status="completed") #lt means less than today
     total_tasks = Task.objects.filter(assigned_to=request.user).count()
     pending_tasks = Task.objects.filter(assigned_to=request.user, status="pending").count()
     due_today = Task.objects.filter(assigned_to=request.user, due_date__date=today).count()
     past_due = Task.objects.filter(assigned_to=request.user, due_date__date__lt=today).exclude(status="completed").count()
-    
+    for task in tasks_pending:
+        # Add status color for badges
+        task.priority_color = {
+            'medium': 'warning',
+            'low': 'primary',
+            'high': 'danger',
+        }.get(task.priority, 'info')
+    for task in tasks_in_progress:
+        # Add status color for badges
+        task.priority_color = {
+            'medium': 'warning',
+            'low': 'primary',
+            'high': 'danger',
+        }.get(task.priority, 'info')
+    for task in tasks_overdue:
+        # Add status color for badges
+        task.priority_color = {
+            'medium': 'warning',
+            'low': 'primary',
+            'high': 'danger',
+        }.get(task.priority, 'info')
+
     if request.method == "POST":
         form = TaskForm(request.POST)
         if form.is_valid():
@@ -63,6 +86,25 @@ def employee_dashboard(request):
                         parent_task=task,
                         title=subtask_title.strip()
                     )
+
+            create_notification(
+                user=task.assigned_to,
+                notification_type='task_assigned',
+                title='New Task Assignment',
+                message=f'You have been assigned the task: {task.title}',
+                project=task.project,
+                task=task
+            )
+
+            user_email = task.assigned_to.email
+            # Sending an email
+            send_mail(
+                "Task Assigned",
+                f"You have been assigned the task: {task.title}",
+                settings.EMAIL_HOST_USER,
+                [user_email],
+                fail_silently=False,
+            )
 
             return redirect("employee_dashboard")
     else:
@@ -93,6 +135,25 @@ def marketplace(request):
             task.assigned_by = request.user
             task.assigned_to = request.user
             task.save()
+
+            # Handle attachments
+            files = request.FILES.getlist('attachments')
+            for file in files:
+                TaskAttachment.objects.create(
+                    task=task,
+                    file=file,
+                    uploaded_by=request.user
+                )
+
+            # Handle subtasks
+            subtasks = request.POST.getlist('subtasks[]')
+            for subtask_title in subtasks:
+                if subtask_title.strip():  # Only create if not empty
+                    SubTask.objects.create(
+                        parent_task=task,
+                        title=subtask_title.strip()
+                    )
+
             return redirect("marketplace")  # Refresh the page after adding
         else:
             print(form.errors)
@@ -106,6 +167,16 @@ def takeon(request, task_id):
     task.assigned_to=request.user
     task.status="pending"
     task.save()
+
+    create_notification(
+        user=task.assigned_by,
+        notification_type='task_assigned',
+        title='Market Place Assignment',
+        message=f'Task "{task.title}" has been taken on by {task.assigned_to}',
+        project=task.project,
+        task=task
+    )
+
     return redirect("employee_dashboard")
 
 
@@ -114,11 +185,28 @@ def manager_dashboard(request):
     tasks_assigned=Task.objects.filter(assigned_by=request.user,project__isnull=True, status__in=["pending", "in_progress"] ).exclude(assigned_to=request.user)
     tasks_review=Task.objects.filter(assigned_by=request.user,status__in=["submitforreview", "under_review"]).exclude(assigned_to=request.user)
     projects = Project.objects.filter(manager=request.user)
+    
+    for task in tasks_assigned:
+        # Add status color for badges
+        task.status_color = {
+            'pending': 'warning',
+            'in_progress': 'primary',
+            'completed': 'success',
+            'under_review': 'secondary',
+        }.get(task.status, 'info')
 
     for project in projects:
-            project.total_tasks = project.tasks.count()
-            project.completed_tasks = project.tasks.filter(status='completed').count()
-            project.progress = (project.completed_tasks / project.total_tasks * 100) if project.total_tasks > 0 else 0
+        # Add status color for badges
+        project.status_color = {
+            'pending': 'warning',
+            'in_progress': 'primary',
+            'completed': 'success',
+            'on_hold': 'secondary',
+        }.get(project.status, 'info')
+
+        project.total_tasks = project.tasks.count()
+        project.completed_tasks = project.tasks.filter(status='completed').count()
+        project.progress = (project.completed_tasks / project.total_tasks * 100) if project.total_tasks > 0 else 0
     
     if request.method == "POST":
         form = TaskForm(request.POST)
@@ -240,6 +328,15 @@ def assign_task(request, task_id):
                     message=f'You have been assigned the task: {task.title}',
                     project=task.project,
                     task=task
+                )
+                user_email = task.assigned_to.email
+                # Sending an email
+                send_mail(
+                    "Task Assigned",
+                    f"You have been assigned the task: {task.title}",
+                    settings.EMAIL_HOST_USER,
+                    [user_email],
+                    fail_silently=False,
                 )
                 return redirect('assign_task', task_id=task.id)
             
@@ -434,7 +531,7 @@ def delete_task(request, task_id):
     # Ensure only the assigned user or manager can delete
     if request.user == task.assigned_to or request.user.role == "manager":
         task.delete()
-        return redirect("employee_dashboard")  # Redirect after deletion
+        return redirect("manager_dashboard")  # Redirect after deletion
     else:
         return redirect("task_detail", task_id=task.id)  # Prevent unauthorized deletion
 
@@ -538,11 +635,12 @@ def task_detail(request, task_id):
                 print(assign_form.errors)
 
         # Check if updating a subtask
-        subtask_id = request.POST.get("subtask_id")
-        if subtask_id:
-            subtask = get_object_or_404(SubTask, id=subtask_id)
-            subtask.completed = not subtask.completed  # Toggle completion
-            subtask.save()
+        if request.user == task.assigned_to:
+            subtask_id = request.POST.get("subtask_id")
+            if subtask_id:
+                subtask = get_object_or_404(SubTask, id=subtask_id)
+                subtask.completed = not subtask.completed  # Toggle completion
+                subtask.save()
             
 
     context = {
@@ -972,7 +1070,7 @@ def team_reports(request):
             'in_progress_tasks': tasks.filter(status='in_progress').count(),
             'total_tasks': tasks.count(),
             'on_time_tasks': completed_tasks.filter(
-                reviewed_at__lte=F('due_date')
+                completed_on__lte=F('due_date')
             ).count(),
         }
         
@@ -993,7 +1091,7 @@ def team_reports(request):
     
     completed_tasks = Task.objects.filter(
         status='completed',
-        reviewed_at__range=[start_date, due_date]
+        completed_on__range=[start_date, due_date]
     ).count()
 
     context = {
@@ -1054,7 +1152,7 @@ def task_reports(request):
     # Calculate completion time for completed tasks
     completion_time = tasks.filter(status='completed').annotate(
         duration=ExpressionWrapper(
-            F('reviewed_at') - F('created_at'),
+            F('completed_on') - F('created_at'),
             output_field=DurationField()
         )
     ).aggregate(
@@ -1120,7 +1218,7 @@ def performance_reports(request):
         
         # Calculate rates and scores
         if data['total_tasks'] > 0:
-            data['completion_rate'] = (data['tasks_completed'] / data['total_tasks']) * 100
+            data['completion_rate'] =  round((data['tasks_completed'] / data['total_tasks']) * 100, 2)
             data['on_time_rate'] = (data['on_time_tasks'] / data['tasks_completed'] * 100) if data['tasks_completed'] > 0 else 0
             
             # Quality score based on task reviews
@@ -1129,7 +1227,7 @@ def performance_reports(request):
                 status='approved',
                 submitted_at__range=[start_date, due_date]
             )
-            data['quality_score'] = reviews.aggregate(Avg('ratings'))['ratings__avg'] or 0
+            data['quality_score'] = round(reviews.aggregate(Avg('ratings'))['ratings__avg'] or 0, 2)
             
             # Calculate efficiency score
             #avg_completion_time = tasks.filter(status='completed').annotate(
@@ -1148,10 +1246,11 @@ def performance_reports(request):
             #data['efficiency_score'] = 100 - (avg_completion_time['avg_days'] or 0) * 2  # Adjust formula as needed
             
             # Overall rating
-            data['overall_rating'] = (
+            data['overall_rating'] = round(
                 data['completion_rate'] * 0.4 +
                 data['on_time_rate'] * 0.3 +
                 data['quality_score'] * 0.3 
+                ,2
                 #data['efficiency_score'] * 0.2
             )
         else:

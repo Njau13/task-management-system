@@ -22,3 +22,4 @@ media/
 
 #ignore backup
 db_backup.sqlite3
+.env
