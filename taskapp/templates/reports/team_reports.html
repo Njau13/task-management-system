@@ -27,7 +27,7 @@
                     </div>
                     <div class="col-md-3">
                         <div class="stat-card text-center p-3">
-                            <h3>{{ completion_rate|floatformat:1 }}%</h3>
+                            <h3>{{ avg_task_completion_rate|floatformat:1 }}%</h3>
                             <p class="mb-0">Task Completion Rate</p>
                         </div>
                     </div>
@@ -49,9 +49,10 @@
                                 <th>Projects</th>
                                 <th>Tasks Completed</th>
                                 <th>Tasks In Progress</th>
+                                
+                                <th>Overdue Tasks</th>
+                                <th>Due Today</th>
                                 <th>Total Tasks</th>
-                                <th>Completion Rate</th>
-                                <th>On-Time Rate</th>
                                 <th>Performance Score</th>
                             </tr>
                         </thead>
@@ -62,9 +63,10 @@
                                 <td>{{ member.project_count }}</td>
                                 <td>{{ member.completed_tasks }}</td>
                                 <td>{{ member.in_progress_tasks }}</td>
+                                
+                                <td>{{ member.tasks_overdue }}</td>
+                                <td>{{ member.tasks_today }}</td>
                                 <td>{{ member.total_tasks }}</td>
-                                <td>{{ member.completion_rate|floatformat:1 }}%</td>
-                                <td>{{ member.on_time_rate|floatformat:1 }}%</td>
                                 <td>
                                     <span style="font-size: 10pt ;" class="text-primary">{{ member.performance_score|floatformat:1 }}% </span>
                                     <div class="progress">

@@ -82,11 +82,11 @@
             <li class="nav-item">
                     <a href="{% url 'manager_dashboard' %}" class="nav-link text-white">Manager Board</a>
                 </li>
-            {% elif request.user.role == "employee"%}
+            {% endif %}
                 <li class="nav-item">
                     <a href="{% url 'user_projects' %}" class="nav-link text-white">Projects</a>
             </li>
-            {% endif %}
+            
 
             <li class="nav-item">
                 <a href="{% url 'marketplace' %}" class="nav-link text-white">Market Place</a>

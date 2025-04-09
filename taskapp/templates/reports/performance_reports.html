@@ -21,14 +21,14 @@
                     </div>
                     <div class="col-md-3">
                         <div class="stat-card text-center p-3">
-                            <h3>{{ avg_task_quality|floatformat:1 }}</h3>
+                            <h3>{{ avg_task_quality|floatformat:1 }}/5</h3>
                             <p class="mb-0">Avg Task Quality</p>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="stat-card text-center p-3">
-                            <h3>{{ productivity_score|floatformat:1 }}</h3>
-                            <p class="mb-0">Productivity Score</p>
+                            <h3>{{ productivity_score|floatformat:1 }}%</h3>
+                            <p class="mb-0">Overall Rating</p>
                         </div>
                     </div>
                 </div>
@@ -42,14 +42,18 @@
             <div class="card-body">
                 <h6 class="card-title">Individual Performance Metrics</h6>
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover" id="reportTable">
                         <thead>
                             <tr>
                                 <th>Member</th>
+                                <th>Role</th>
                                 <th>Tasks Completed</th>
+                                
                                 <th>Completion Rate</th>
                                 <th>On-Time Rate</th>
                                 <th>Quality Score</th>
+                                <th>Average Completion Time</th>
+                                <th>Efficiency Score</th>
                                 
                                 
                                 <th>Overall Rating</th>
@@ -59,16 +63,20 @@
                             {% for member in performance_data %}
                             <tr>
                                 <td>{{ member.name }}</td>
-                                <td>{{ member.tasks_completed }}</td>
-                                <td>{{ member.completion_rate }}%</td>
-                                <td>{{ member.on_time_rate }}%</td>
-                                <td>{{ member.quality_score }}/5</td>
+                                <td>{{ member.role }} </td>
+                                <td>{{ member.completed_tasks }}</td>
+                                
+                                <td>{{ member.completion_rate|floatformat:1 }}%</td>
+                                <td>{{ member.on_time_rate|floatformat:1 }}%</td>
+                                <td>{{ member.quality_score|floatformat:0 }}/5</td>
+                                <td>{{ member.the_avg_completion_time |floatformat:1 }} days</td>
+                                <td>{{ member.efficiency_score|floatformat:1 }}%</td>
                                 
                                 
                                 <td>
-                                    
-                                    {{ member.overall_rating }}%
-                                        
+                                    <span class="{% if member.performance_score >= 75 %}text-success{% elif member.performance_score >= 50 %}text-warning{% else %}text-danger{% endif %}" >
+                                    {{ member.overall_rating|floatformat:1 }}%
+                                </span>   
                                 </td>
                             </tr>
                             {% endfor %}
@@ -79,7 +87,7 @@
         </div>
     </div>
 
-    <!-- Trend Analysis -->
+    <!-- Trend Analysis 
     <div class="col-md-6 mb-4">
         <div class="card">
             <div class="card-body">
@@ -89,7 +97,7 @@
         </div>
     </div>
 
-    <!-- Workload vs Performance -->
+    Workload vs Performance 
     <div class="col-md-6 mb-4">
         <div class="card">
             <div class="card-body">
@@ -97,6 +105,14 @@
                 <canvas id="workloadPerformanceChart"></canvas>
             </div>
         </div>
-    </div>
+    </div>-->
+    <script>
+        $(document).ready(function() {
+            $("#reportTable").DataTable({
+                order: [[5, 'desc']], // Sort by performance score by default
+                pageLength: 10
+            }); // Enables search, pagination, and sorting
+        });
+    </script>
 </div>
 {% endblock %} 

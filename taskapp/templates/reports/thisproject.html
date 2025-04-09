@@ -1,22 +1,11 @@
 {% extends "reports/dashboard.html" %}
-{% load static %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-{% block content %}
-<div class="container-fluid px-4">
-    <div class="d-flex">
-        <h1 class="mt-4">Project Report: {{ project.name }}</h1>
-        <button class="btn btn-outline-primary ms-auto" onclick="window.print()">
-            <i class="fas fa-print"></i> Print
-        </button>
-    </div>
-
-    <div class="card mb-4" id="reportCard">
-        <div class="card-header">
-            <i class="fas fa-project-diagram me-1"></i>
-            Project Overview
-        </div>
+{% block report_content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+    <div class="card">
+        
         <div class="card-body">
+            
             <div class="row">
                 <div class="col-xl-3 col-md-6">
                     <div class="card bg-primary text-white mb-4">
@@ -182,15 +171,15 @@
             </div>
         </div>
     </div>
+    </div>
 </div>
 
 
 
-{% block extra_js %}
 <script>
-    $(document).ready(function() {
-        $('#tasksTable').DataTable();
-    });
+$(document).ready(function() {
+    $('#tasksTable').DataTable();
+});
 
 function exportCardToPDF(cardId) {
     const { jsPDF } = window.jspdf;  // Import jsPDF
@@ -214,5 +203,4 @@ function exportCardToPDF(cardId) {
 
 </script>
 
-{% endblock %}
 {% endblock %}

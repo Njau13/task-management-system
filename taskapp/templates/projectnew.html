@@ -11,7 +11,7 @@
     
     <div class="d-flex flex-wrap">
         {% for project in projects %}
-            <div class="card m-2 border-dark shadow" style="width: 20rem;">
+            <div class="card m-2 " style="width: 20rem;">
                 <div class="card-body">
                     <div class="card-header bg-dark text-white">
                         <a href="{% url 'project_detail' project.id %}" style="font-weight: bold;">{{ project.name }}</a>

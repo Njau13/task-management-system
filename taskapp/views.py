@@ -42,22 +42,22 @@ def employee_dashboard(request):
     for task in tasks_pending:
         # Add status color for badges
         task.priority_color = {
-            'medium': 'warning',
-            'low': 'primary',
+            'medium': 'primary',
+            'low': 'warning',
             'high': 'danger',
         }.get(task.priority, 'info')
     for task in tasks_in_progress:
         # Add status color for badges
         task.priority_color = {
-            'medium': 'warning',
-            'low': 'primary',
+            'medium': 'primary',
+            'low': 'warning',
             'high': 'danger',
         }.get(task.priority, 'info')
     for task in tasks_overdue:
         # Add status color for badges
         task.priority_color = {
-            'medium': 'warning',
-            'low': 'primary',
+            'medium': 'primary',
+            'low': 'warning',
             'high': 'danger',
         }.get(task.priority, 'info')
 
@@ -248,6 +248,7 @@ def project_detail(request, project_id):
     tasks = project.tasks.all().order_by("due_date")
     overdue = localtime().date()
     tasks_overdue= project.tasks.filter(due_date__date__lt=overdue).exclude(status="completed")
+    tasks_review= project.tasks.filter(status="under_review")
     form = TaskForm(request.POST)
     project_members = project.project_members.exclude(role="observer")
 
@@ -295,6 +296,7 @@ def project_detail(request, project_id):
         "progress": progress,
         "form": form,
         "tasks_overdue":tasks_overdue,
+        "tasks_review":tasks_review,
         "project_members":project_members
     })
 
@@ -775,6 +777,15 @@ def update_project_members(request, project_id):
                     message=f'You have been added as a {role} to the project {project.name}',
                     project=project
                 )
+                user_email = user.email
+                # Sending an email
+                send_mail(
+                    "Project Invite",
+                    f'You have been added to Project: {project.name} as a {role}',
+                    settings.EMAIL_HOST_USER,
+                    [user_email],
+                    fail_silently=False,
+                )
 
         messages.success(request, 'Team members updated successfully')
         return redirect('project_details', project_id=project.id)
@@ -1035,6 +1046,7 @@ def this_project(request, project_id):
         'member_stats': member_stats,
         'milestones': milestones,
         'tasks': tasks,
+        'report_title': project.name,
         'report_date': timezone.now()
     }
     
@@ -1052,21 +1064,27 @@ def team_reports(request):
         due_date = timezone.now()
         start_date = due_date - timedelta(days=int(date_range))
 
-    team_members = User.objects.filter(
-        Q(projectmember__project__start_date__gte=start_date) |
-        Q(projectmember__project__due_date__lte=due_date)
-    ).distinct()
+    #team_members = User.objects.filter(
+    #    Q(projectmember__project__start_date__gte=start_date) |
+     #   Q(projectmember__project__due_date__lte=due_date)
+    #).distinct()
+    team_members = User.objects.filter(is_active=True)
 
     member_stats = []
     for member in team_members:
         # Calculate member statistics
-        tasks = Task.objects.filter(assigned_to=member)
+        tasks = Task.objects.filter(assigned_to=member, created_at__range=[start_date, due_date])
         completed_tasks = tasks.filter(status='completed')
-        
+        overdue = localtime().date()
+        tasks_overdue= tasks.filter( due_date__date__lt=overdue).exclude(status="completed") #lt means less than today
+        today = localtime().date()
+        tasks_today =tasks.filter( due_date__date=today) #Uses .date() to match only the date part of due_date (ignores time).
         stats = {
             'user': member,
             'project_count': member.projectmember_set.count(),
             'completed_tasks': completed_tasks.count(),
+            'tasks_overdue':tasks_overdue.count(),
+            'tasks_today':tasks_today.count(),
             'in_progress_tasks': tasks.filter(status='in_progress').count(),
             'total_tasks': tasks.count(),
             'on_time_tasks': completed_tasks.filter(
@@ -1099,7 +1117,8 @@ def team_reports(request):
         'report_title': 'Team Reports',
         'total_members': team_members.count(),
         'active_members': team_members.filter(is_active=True).count(),
-        'avg_tasks_per_member': total_tasks / team_members.count() if team_members.count() > 0 else 0,
+        'avg_tasks_per_member': sum(d['total_tasks'] for d in member_stats) / len(member_stats) if member_stats else 0,
+        'avg_task_completion_rate': sum(d['completion_rate'] for d in member_stats) / len(member_stats) if member_stats else 0,
         'completion_rate': (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0,
         'team_members': member_stats,
         'chart_data': get_team_chart_data(team_members, start_date, due_date),
@@ -1158,8 +1177,8 @@ def task_reports(request):
     ).aggregate(
         avg_days=Avg(
             ExpressionWrapper(
-                F("duration") / 86400,  # Convert seconds to days
-                output_field=fields.FloatField(),
+                F("duration") / (1000000 * 86400.0),  # Convert seconds to days (86400 seconds in a day)
+                output_field=FloatField(),  # Ensure it’s stored as a float
             )
         )
     )
@@ -1209,7 +1228,8 @@ def performance_reports(request):
         # Calculate various performance metrics
         data = {
             'name': member.get_full_name() or member.username,
-            'tasks_completed': completed_tasks.count(),
+            'role':member.role,
+            'completed_tasks': completed_tasks.count(),
             'total_tasks': tasks.count(),
             'on_time_tasks': completed_tasks.filter(
                 completed_on__lte=F('due_date')
@@ -1218,8 +1238,8 @@ def performance_reports(request):
         
         # Calculate rates and scores
         if data['total_tasks'] > 0:
-            data['completion_rate'] =  round((data['tasks_completed'] / data['total_tasks']) * 100, 2)
-            data['on_time_rate'] = (data['on_time_tasks'] / data['tasks_completed'] * 100) if data['tasks_completed'] > 0 else 0
+            data['completion_rate'] = (data['completed_tasks'] / data['total_tasks']) * 100
+            data['on_time_rate'] = (data['on_time_tasks'] / data['completed_tasks']) * 100 if data['completed_tasks'] > 0 else 0
             
             # Quality score based on task reviews
             reviews = TaskReview.objects.filter(
@@ -1227,31 +1247,38 @@ def performance_reports(request):
                 status='approved',
                 submitted_at__range=[start_date, due_date]
             )
-            data['quality_score'] = round(reviews.aggregate(Avg('ratings'))['ratings__avg'] or 0, 2)
-            
-            # Calculate efficiency score
-            #avg_completion_time = tasks.filter(status='completed').annotate(
-            #    duration=ExpressionWrapper(
-              #      F('completed_on') - F('created_at'),
-              #      output_field=DurationField()
-              #  )
-            #).aggregate(
-            #    avg_days=Avg(
-              #      ExpressionWrapper(
-              #          F("duration") / 86400,  # Convert seconds to days
-               #         output_field=fields.FloatField(),
-               #     )
-               # )
-            #
-            #data['efficiency_score'] = 100 - (avg_completion_time['avg_days'] or 0) * 2  # Adjust formula as needed
+            data['quality_score'] = reviews.aggregate(Avg('ratings'))['ratings__avg'] or 0
+            if completed_tasks.exists():
+                avg_completion_time = tasks.filter(status='completed').annotate(
+                    duration=ExpressionWrapper(
+                        F('completed_on') - F('created_at'),
+                        output_field=DurationField()
+                    )
+                ).aggregate(
+                    avg_days=Avg(
+                        ExpressionWrapper(
+                            F("duration") / (1000000 * 86400.0),  # Convert microseconds to days
+                            output_field=FloatField(),
+                        )
+                    )
+                )
+
+                # Extract the actual value, ensuring it doesn’t crash if it's None
+                data['the_avg_completion_time'] = avg_completion_time['avg_days'] or 0  
+
+                # Adjust efficiency score calculation
+                data['efficiency_score'] = 100 - (data['the_avg_completion_time'] * 2) or 0 # Modify formula if needed
+            else:
+                data['the_avg_completion_time'] = 0
+                data['efficiency_score'] = 0  # If no completed tasks, efficiency score is 0
             
             # Overall rating
-            data['overall_rating'] = round(
+            data['overall_rating'] = (
                 data['completion_rate'] * 0.4 +
-                data['on_time_rate'] * 0.3 +
-                data['quality_score'] * 0.3 
-                ,2
-                #data['efficiency_score'] * 0.2
+                data['on_time_rate'] * 0.2 +
+                data['quality_score'] /5 * 0.2 +
+            
+                data['efficiency_score'] * 0.2
             )
         else:
             data['completion_rate'] = data['on_time_rate'] = data['quality_score'] = \
